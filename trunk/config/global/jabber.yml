@@ -1,0 +1,8 @@
+jid: username@staff.csolve.net
+domain: staff.csolve.net
+resource: Servers
+password: password
+channels:
+ allservers@conference.staff.csolve.net:
+  password: server4u
+  nick: nickname 

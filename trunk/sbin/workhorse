@@ -1,0 +1,39 @@
+#!/usr/bin/perl
+
+use strict;
+use lib qw(/usr/local/workhorse/lib);
+no lib '.';
+use Proc::PID::File;
+use Proc::Daemon;
+use File::Spec;
+use Sys::Syslog qw(:DEFAULT setlogsock);
+use POSIX ();
+
+use Workhorse;
+
+my $workhorse = new Workhorse;
+my $config = $workhorse->config;
+
+my $uid = getpwnam($config->('global.daemon.user'));
+my $gid = getpwnam($config->('global.daemon.group'));
+
+Proc::Daemon::Init;
+
+die "Already running!" if Proc::PID::File->running( verify => 1 );
+chown $uid, $gid,  File::Spec->catfile($config->('global.daemon.client_pid'));
+chmod 0644, File::Spec->catfile($config->('global.daemon.client_pid'));
+
+POSIX::setgid($gid);
+POSIX::setuid($uid);
+die "Can't drop privileges" unless $< == $uid && $> == $uid && $( == $gid && $) == $gid;
+
+setlogsock('unix');
+openlog('workhorse', 'pid', $config->('global.daemon.client_syslog_facility'));
+syslog('notice', 'Workhorse Starting');
+
+$0 = "workhorse";
+
+$workhorse->start_connection();
+
+syslog('notice', 'Workhorse Client Ending');
+closelog();
