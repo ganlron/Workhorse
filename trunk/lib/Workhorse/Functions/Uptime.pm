@@ -2,6 +2,7 @@ package Workhorse::Functions::Uptime;
 
 use strict;
 use Carp;
+our $VERSION = "0.01";
 our $AUTOLOAD;
 
 =head1 NAME
@@ -22,8 +23,11 @@ Replies to 'uptime' with system uptime
 
 =cut
 
+our $NAME = 'uptime';
+our $DESCRIPTION = 'Replies with system uptime';
+
 my %fields = (
-	name => 'uptime',
+	name => $NAME,
 	groupchat => undef,
 	chat => undef,
 );
@@ -41,7 +45,7 @@ sub new {
 sub _return_uptime {
 	my ($connection,$message) = @_;
 	return 0 unless ($connection && $message);
-	return 0 unless ($message->any_body =~ m/\buptime\b/i);
+	return 0 unless ($message->any_body =~ m/^uptime$/i);
 	my $reply = $message->make_reply;
 	my $uptime = `uptime`;
 	$reply->add_body($uptime);

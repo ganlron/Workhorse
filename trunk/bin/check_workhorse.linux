@@ -1,0 +1,11 @@
+#!/usr/local/bin/perl 
+
+my $rc = '/etc/init.d/workhorse';
+if (-x $rc) {
+	my $string = `$rc status`;
+	$string =~ s/\n//g;
+
+	unless ($string =~ m/^workhorse \([^\)]+\) is running/) {
+		system($rc, 'start');
+	}
+}

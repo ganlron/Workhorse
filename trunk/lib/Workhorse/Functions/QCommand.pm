@@ -2,6 +2,7 @@ package Workhorse::Functions::QCommand;
 
 use strict;
 use Carp;
+our $VERSION = "0.01";
 our $AUTOLOAD;
 
 =head1 NAME
@@ -22,8 +23,11 @@ Allows commands on the mail queue
 
 =cut
 
+our $NAME = 'qcommand';
+our $DESCRIPTION = 'Allows commands on the mail queue';
+
 my %fields = (
-	name => 'qcommand',
+	name => $NAME,
 	groupchat => undef,
 	chat => undef,
 );
@@ -44,11 +48,11 @@ sub _do_qcommand {
 	my $reply = $message->make_reply;
 	my $response;
 	#system('exiqgrep -i -r '.$domain.' | xargs -L 10 exim -M &');
-	if ($message->any_body =~ m/\bretry\s+delivery\s+for\s+([^\s]+)/i) {
+	if ($message->any_body =~ m/^qcommand retry\s+([^\s]+)/i) {
 		my $dom = lc($1);
 		$response = 'Attempting resend of queued messages to '.$dom.".  This may take some time.";
 		system('/usr/local/sbin/exiqgrep -i -r '.$dom.' | /usr/bin/xargs -L 10 /usr/local/sbin/exim -M &');
-	} elsif ($message->any_body =~ m/\bpurge\s+queued\s+mail\s+for\s+([^\s]+)/i) {
+	} elsif ($message->any_body =~ m/^qcommand purge\s+([^\s]+)/i) {
 		my $dom = lc($1);
 		$response = 'Purging queued mail for '.$dom.'.  This may take a minute.';
 		system('/usr/local/sbin/exiqgrep -i -r '.$dom.' | /usr/bin/xargs -L 10 sudo /usr/local/sbin/exim -Mrm &');

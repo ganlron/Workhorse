@@ -3,6 +3,8 @@ package Workhorse::Handlers;
 use strict;
 use Carp;
 use Module::Find;
+use Workhorse::Config;
+our $VERSION = "0.01";
 our $AUTOLOAD;
 
 =head1 NAME
@@ -30,7 +32,14 @@ my %fields = (
 	handled => undef,
 );
 
-my @Loaded = usesub Workhorse::Functions;
+my @Loaded = qw//;
+
+my @toload = findsubmod Workhorse::Functions;
+
+foreach my $m (@toload) {
+	eval " require $m; import $m ; ";
+	if ($@) { warn $@; } else { push (@Loaded, $m); }
+}
 
 sub new {
 	my ($proto,$connection,$message) = @_;
@@ -40,7 +49,7 @@ sub new {
 	return undef unless ($connection && $message);
 	$self->{connection} = $connection;
 	$self->{message} = $message;
-	$self->{config} = $Workhorse::Config;
+	$self->{config} = Workhorse::Config::object;
 	$self->_init();
 	return $self;
 }
@@ -50,9 +59,10 @@ sub handle_message {
 	if ($self->{message}->type =~ m/^(?:normal|chat)$/i) {
 		my $chat_handler = $self->chat;
 		my $users = $self->{config}->('users');
+
 		foreach my $handle (keys %{$chat_handler}) {
 			next if $handle =~ m/^_/;
-			next unless ($users->{$self->_get_user_from_jid($self->{message}->from)}->{allowed} eq 'all' or $users->{$self->_get_user_from_jid($self->{message}->from)}->{functions}->{$handle} eq 'allowed');
+			next unless ($users->{Workhorse->get_user($self->{message}->from)}->{allowed} eq 'all' or $users->{Workhorse->get_user($self->{message}->from)}->{functions}->{$handle} eq 'allowed');
 			my $handler = $chat_handler->{$handle};
 			eval{$self->handled(&$handler($self->connection,$self->message))};
 			last if ($self->handled);
@@ -60,7 +70,7 @@ sub handle_message {
 		
 		unless($self->handled) {
 			# Hasn't been handled, default it
-			return unless ($users->{$self->_get_user_from_jid($self->{message}->from)}->{allowed} eq 'all');
+			return unless ($users->{Workhorse->get_user($self->{message}->from)}->{allowed} eq 'all');
 			my $handler = $chat_handler->{_default};
 			$self->handled(&$handler($self->connection,$self->message));
 		}
@@ -72,10 +82,12 @@ sub handle_group_message {
 
 	if ($self->{message}->type =~ m/^(?:groupchat)$/i) {
 		my $chat_handler = $self->groupchat;
+		my $handles = $self->{config}->('handles');
 		my $users = $self->{config}->('users');
+		return if (Workhorse->get_handle($self->{message}->from) eq 'anonymous');
 		foreach my $handle (keys %{$chat_handler}) {
 			next if $handle =~ m/^_/;
-			next unless ($users->{$self->_get_handle_from_jid($self->{message}->from)}->{allowed} eq 'all' or $users->{$self->_get_handle_from_jid($self->{message}->from)}->{functions}->{$handle} eq 'allowed');
+			next unless ($users->{$handles->{Workhorse->get_handle($self->{message}->from)}->{link}}->{allowed} eq 'all' or $users->{$handles->{Workhorse->get_handle($self->{message}->from)}->{link}}->{functions}->{$handle} eq 'allowed');
 			my $handler = $chat_handler->{$handle};
 			eval{$self->handled(&$handler($self->connection,$self->message))};
 			last if ($self->handled);
@@ -83,7 +95,7 @@ sub handle_group_message {
 		
 		unless($self->handled) {
 			# Hasn't been handled, default it
-			return unless ($users->{$self->_get_handle_from_jid($self->{message}->from)}->{allowed} eq 'all');
+			return unless ($users->{$handles->{Workhorse->get_handle($self->{message}->from)}->{link}}->{allowed} eq 'all');
 			my $handler = $chat_handler->{_default};
 			$self->handled(&$handler($self->connection,$self->message));
 		}
@@ -117,25 +129,9 @@ sub _default_handler {
 	
 }
 
-sub _get_user_from_jid {
-	my ($self, $jid) = @_;
-	return 'anonymous' unless $jid;
-	my $domain = $self->{config}->('global.jabber.domain');
-	if ($jid =~ m/^([^\@]+)\@$domain/i) {
-		return lc($1);
-	} else {
-		return 'anonymous';
-	}
-}
-
-sub _get_handle_from_jid {
-	my ($self, $jid) = @_;
-	return 'anonymous' unless $jid;
-	if ($jid =~ m/^[^\@]+\@[^\/]+\/(.+)$/) {
-		return lc($1);
-	} else {
-		return 'anonymous';
-	}
+sub get_loaded {
+	my ($self) = shift;
+	return @Loaded;
 }
 
 sub AUTOLOAD {

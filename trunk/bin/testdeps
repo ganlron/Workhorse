@@ -110,6 +110,12 @@ Digest::SHA1
 Data::Alias
 Config::Any
 IO::Tty
+YAML::Syck
+Config::Tiny
+XML::Simple
+JSON
+JSON::XS
+GetOpt::Long
 .
 
 if ($args{'download'}) {

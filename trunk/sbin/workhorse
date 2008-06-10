@@ -8,32 +8,46 @@ use Proc::Daemon;
 use File::Spec;
 use Sys::Syslog qw(:DEFAULT setlogsock);
 use POSIX ();
+use Getopt::Long;
 
+use Config::Merge( 'Workhorse::Config' => '/usr/local/workhorse/config' );
 use Workhorse;
+use Workhorse::Config;
 
 my $workhorse = new Workhorse;
-my $config = $workhorse->config;
+my $config    = Workhorse::Config::object;
 
-my $uid = getpwnam($config->('global.daemon.user'));
-my $gid = getpwnam($config->('global.daemon.group'));
+my $DEBUG = 0;
 
-Proc::Daemon::Init;
+GetOptions( "debug" => \$DEBUG );
 
-die "Already running!" if Proc::PID::File->running( verify => 1 );
-chown $uid, $gid,  File::Spec->catfile($config->('global.daemon.client_pid'));
-chmod 0644, File::Spec->catfile($config->('global.daemon.client_pid'));
+my $uid = getpwnam( $config->('global.daemon.user') );
+my $gid = getpwnam( $config->('global.daemon.group') );
 
-POSIX::setgid($gid);
-POSIX::setuid($uid);
-die "Can't drop privileges" unless $< == $uid && $> == $uid && $( == $gid && $) == $gid;
+unless ($DEBUG) {
+
+    # Don't Daemonize if trying to debug
+    Proc::Daemon::Init;
+
+    die "Already running!" if Proc::PID::File->running( verify => 1 );
+    chown $uid, $gid,
+      File::Spec->catfile( $config->('global.daemon.client_pid') );
+    chmod 0644, File::Spec->catfile( $config->('global.daemon.client_pid') );
+
+    POSIX::setgid($gid);
+    POSIX::setuid($uid);
+    die "Can't drop privileges"
+      unless $< == $uid && $> == $uid && $( == $gid && $) == $gid;
+}
 
 setlogsock('unix');
-openlog('workhorse', 'pid', $config->('global.daemon.client_syslog_facility'));
-syslog('notice', 'Workhorse Starting');
+openlog( 'workhorse', 'pid',
+    $config->('global.daemon.client_syslog_facility') );
+syslog( 'notice', 'Workhorse Starting' );
 
 $0 = "workhorse";
 
 $workhorse->start_connection();
 
-syslog('notice', 'Workhorse Client Ending');
+syslog( 'notice', 'Workhorse Client Ending' );
 closelog();

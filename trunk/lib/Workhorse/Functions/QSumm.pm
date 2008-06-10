@@ -2,6 +2,7 @@ package Workhorse::Functions::QSumm;
 
 use strict;
 use Carp;
+our $VERSION = "0.01";
 our $AUTOLOAD;
 
 =head1 NAME
@@ -22,8 +23,11 @@ Allows queries to the queue summary
 
 =cut
 
+our $NAME = 'qsumm';
+our $DESCRIPTION = 'Allows queries to the queue summary';
+
 my %fields = (
-	name => 'qsumm',
+	name => $NAME,
 	groupchat => undef,
 	chat => undef,
 );
@@ -64,16 +68,16 @@ sub _return_info {
 	
 	my $reply = $message->make_reply;
 	my $response;
-	if ($message->any_body =~ m/\bqsumm\b/i) {
+	if ($message->any_body =~ m/^qsumm$/i) {
 		$response = $qsumm;
-	} elsif ($message->any_body =~ m/\bmail\s+queued\s+for\s+([\w\.\-]+)/i) {
+	} elsif ($message->any_body =~ m/^qsumm\s+([\w\.\-]+)$/i) {
 		$response = 'There is no mail queued for '.lc($1);
 		if ($queue_data{lc($1)}) {
 			$response = 'Yes, there are '.$queue_data{lc($1)}{number}.' messages queued for '.lc($1).' totalling '.$queue_data{lc($1)}{size};
 		}
-	} elsif ($message->any_body =~ m/\btotal\s+mail\s+queued/i) {
+	} elsif ($message->any_body =~ m/^qsumm total$/i) {
 		$response = 'There is a total of '.$queue_data{total}{number}.' ('.$queue_data{total}{size}.') messages queued';
-	} elsif ($message->any_body =~ m/\bwhen\s+did\s+mail\s+start\s+queueing\s+for\s+([^\s\?]+)/i or $message->any_body =~ m/\bwhen\s+did\s+([^\s]+)\s+start\s+queueing/i) {
+	} elsif ($message->any_body =~ m/^qsumm when\s+([^\s\?]+)/i) {
 		my $dom = $1;
 		$response = "Sorry, I can't answer that for $dom\n";
 		if ($queue_data{lc($dom)}) {

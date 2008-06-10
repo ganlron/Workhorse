@@ -4,6 +4,7 @@ use strict;
 use Carp;
 use Net::DNS;
 use Net::SMTP;
+our $VERSION = "0.01";
 our $AUTOLOAD;
 
 =head1 NAME
@@ -24,8 +25,11 @@ Tests the ability to connect to a hosts MX records and replies
 
 =cut
 
+our $NAME = 'testmx';
+our $DESCRIPTION = 'Tests the ability to connect to a host\'s MX records and replies';
+
 my %fields = (
-	name => 'testmx',
+	name => $NAME,
 	groupchat => undef,
 	chat => undef,
 );
@@ -43,7 +47,7 @@ sub _return_test {
 	my ($connection,$message) = @_;
 	return 0 unless ($connection && $message);
 
-	if ($message->any_body =~ m/\btest\s+mx\s+for\s+([^\s\?]+)/i or $message->any_body =~ m/\bcan\s+([^\s]+)\sreceive mail/i) {
+	if ($message->any_body =~ m/^testmx\s+([^\s\?]+)/i) {
 		my $domain = $1;
 		my $response = "Test Results For: ".$domain."\n\n";
 

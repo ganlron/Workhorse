@@ -1,0 +1,2 @@
+use_sudo: 1
+sudo_path: "/usr/local/bin/sudo"
