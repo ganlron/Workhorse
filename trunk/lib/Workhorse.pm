@@ -5,6 +5,8 @@ use Carp;
 use utf8;
 our $VERSION = "0.01";
 our $AUTOLOAD;
+our $NAME = 'workhorse';
+our $DESCRIPTION = 'Core daemon functionality';
 
 use Module::Find;
 use AnyEvent;

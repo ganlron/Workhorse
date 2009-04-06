@@ -6,6 +6,8 @@ use Module::Find;
 use Workhorse::Config;
 our $VERSION = "0.01";
 our $AUTOLOAD;
+our $NAME = 'workhorse_handlers';
+our $DESCRIPTION = 'Manages daemon functions';
 
 =head1 NAME
 
@@ -70,6 +72,7 @@ sub handle_message {
 		
 		unless($self->handled) {
 			# Hasn't been handled, default it
+			return unless ($self->{config}->('global.system.enable_direct_default_response'));
 			return unless ($users->{Workhorse->get_user($self->{message}->from)}->{allowed} eq 'all');
 			my $handler = $chat_handler->{_default};
 			$self->handled(&$handler($self->connection,$self->message));
@@ -95,6 +98,7 @@ sub handle_group_message {
 		
 		unless($self->handled) {
 			# Hasn't been handled, default it
+			return unless ($self->{config}->('global.system.enable_group_default_response'));
 			return unless ($users->{$handles->{Workhorse->get_handle($self->{message}->from)}->{link}}->{allowed} eq 'all');
 			my $handler = $chat_handler->{_default};
 			$self->handled(&$handler($self->connection,$self->message));
@@ -121,7 +125,6 @@ sub _init {
 sub _default_handler {
 	my ($connection,$message) = @_;
 	return 0 unless ($connection && $message);
-	return 0 if ($message->type eq 'groupchat');
 	my $reply = $message->make_reply;
 	$reply->add_body('Sorry, I do not understand: '.$message->body);
 	$reply->send;

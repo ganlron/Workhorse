@@ -384,7 +384,6 @@ sub _list_users {
 
     $rtext = "\n" . $rtext if ($rtext);
     my $coder = JSON::XS->new->utf8->pretty->allow_nonref;
-    my $jsontext;
     if ($request) {
         my $id = ( $request->{id} ) ? $request->{id} : time;
         $jsontext = $coder->encode(
@@ -417,7 +416,6 @@ sub _list_handles {
     $rtext = "\n" . $rtext if ($rtext);
     my $coder = JSON::XS->new->utf8->pretty->allow_nonref;
 
-    my $jsontext;
     if ($request) {
         my $id = ( $request->{id} ) ? $request->{id} : time;
         $jsontext = $coder->encode(

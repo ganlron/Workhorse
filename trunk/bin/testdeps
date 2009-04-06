@@ -115,7 +115,7 @@ Config::Tiny
 XML::Simple
 JSON
 JSON::XS
-GetOpt::Long
+Getopt::Long
 .
 
 if ($args{'download'}) {
