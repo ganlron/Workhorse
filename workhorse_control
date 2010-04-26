@@ -28,7 +28,7 @@ if Process.uid == 0
   end
 end
 
-Daemons.run(File.join(File.dirname(__FILE__),'workhorse.rb'), { 
+Daemons.run(File.join(File.dirname(__FILE__),'workhorse'), { 
   :app_name => 'workhorse', 
   :monitor => true, 
   :log_output => true, 

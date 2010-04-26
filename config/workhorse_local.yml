@@ -1,7 +1,10 @@
 im:
-  jid: test@staff.csolve.net
-  password: t3st33
-  channels:
-    allservers@conference.staff.csolve.net:
-      password: server4u
-      nick: Test
+    jid: test@staff.csolve.net
+    password: t3st33
+    channels:
+        allservers@conference.staff.csolve.net:
+            password: server4u
+            nick: Test
+        ngservers@conference.staff.csolve.net:
+            nick: Test
+            password: ng4u

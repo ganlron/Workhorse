@@ -1,9 +1,12 @@
 $LOAD_PATH.unshift( File.join(File.dirname(__FILE__),'../lib') );
 require 'rubygems'
 require 'eventmachine'
-require 'xmpp4r-simple'
 require 'active_support'
 require 'syslog'
+
+require 'xmpp4r'
+require 'xmpp4r/muc/helper/mucclient'
+include Jabber
 
 require 'workhorse/config'
 require 'workhorse/actions'
@@ -13,39 +16,62 @@ module Workhorse
   @@interrupted = false
   
   def self.run
-    # Connect to IM server
-    begin
-      @@im = Jabber::Simple.new("#{WH::Config.im.jid}/#{WH::Config.im.resource}", "#{WH::Config.im.password}", :chat, "Workhorse available")
-      self.log("Connected as #{WH::Config.im.jid}")
-    rescue Jabber::ClientAuthenticationFailure
-      self.log("Authentication failed for #{WH::Config.im.jid}")
-      exit
-    end
+    self.connect
     
     # Begin waiting for messages
-    EM.run do
-      EM::PeriodicTimer.new(1) do
-        
+    EM.run do    
+      EM::PeriodicTimer.new(1) do    
         # Stop if we get an interrupt
         if @@interrupted
           EM.stop
         end
         
         # Check if we got disconnected
-        unless @@im.connected?
-          self.log("Disconnected from IM server")
-          @@im.reconnect
+        if @@im.is_disconnected?
+          self.log("Disconnected from IM server", "warning")
+          sleep 5
+          self.connect
         end
-        
-         WH::Actions.run
-         
       end
+      WH::Actions.run
+    end
+  end
+  
+  def self.connect
+     # Connect to IM server
+    begin
+      @@im = Client.new(JID::new("#{WH::Config.im.jid}/#{WH::Config.im.resource}"))
+      @@im.connect
+      @@im.auth("#{WH::Config.im.password}")
+      @@im.send(Jabber::Presence.new(nil, "Workhorse available", 1))
+      self.log("Connected as #{WH::Config.im.jid}")
+      
+      WH::Config.im.channels.to_hash().each do |cn,ca|
+        muc = Jabber::MUC::MUCClient.new(@@im)
+        WH::Actions.run_muc(cn,muc)
+        muc.join("#{cn}/#{ca[:nick]}", ca[:password])
+      end
+    rescue Jabber::ClientAuthenticationFailure
+      self.log("Authentication failed for #{WH::Config.im.jid}","warning")
+      exit
     end
   end
   
   def self.terminate
-    self.log("Disconnected from IM server")
-    @@im.status(:away, 'Workhorse unavailable')
+    self.log("Disconnected from IM server","warning")
+    @@im.send(Jabber::Presence.new.set_show(:xa).set_status('Workhorse unavailable'))
+  end
+  
+  def self.reply(m, message="Dunno how to #{m.body}")
+    r = Message.new(m.from, message)
+    r.type = m.type
+    @@im.send(r)
+  end
+  
+  def self.reply_muc(muc, m, message="Dunno how to #{m.body}")
+    r = Message.new(nil, message)
+    r.type = m.type
+    muc.send(r)
   end
   
   def self.log(message,type="debug")
