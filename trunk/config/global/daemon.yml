@@ -1,4 +1,0 @@
-client_pid: "/var/run/workhorse.pid"
-user: workhorse
-group: workhorse
-client_syslog_facility: daemon

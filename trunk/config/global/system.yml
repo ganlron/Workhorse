@@ -1,4 +1,0 @@
-use_sudo: 1
-sudo_path: "/usr/local/bin/sudo"
-enable_direct_default_response: 0
-enable_group_default_response: 0

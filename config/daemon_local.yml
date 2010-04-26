@@ -1,0 +1,3 @@
+daemon:
+    user: daemon
+    group: daemon

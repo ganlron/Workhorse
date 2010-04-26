@@ -1,0 +1,7 @@
+# Ignore DS_Stores
+.DS_Store
+# Ignore data files
+*.db
+*.sqlite
+*.csv
+*.tsv

@@ -1,5 +1,0 @@
-allowed: limited
-functions:
-    uptime: allowed
-    testmx: allowed
-    qsumm: allowed
