@@ -1,4 +1,3 @@
-$LOAD_PATH.unshift( File.join(File.dirname(__FILE__),'../lib') );
 require 'rubygems'
 require 'eventmachine'
 require 'active_support'
@@ -15,13 +14,14 @@ module Workhorse
           case m.body
           when "test" :
             WH.reply(m,"You sent #{m.body}")
+          when "ipath" :
+            WH.reply(m,$LOAD_PATH.inspect)
           when "lift" :
             EM.spawn do
               worker = Worker.new
               worker.callback {WH.reply(m, "Done lifting")}
               worker.heavy_lifting
             end.notify
-            WH.log("Sending message to #{m.from}: Scheduled heavy job...")
             WH.reply(m, "Scheduled heavy job...")
           when "pull" :
             EM.spawn do
