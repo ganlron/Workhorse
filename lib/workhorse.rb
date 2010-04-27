@@ -32,7 +32,6 @@ module Workhorse
           self.connect
         end
       end
-      WH::Actions.run
     end
   end
   
@@ -44,6 +43,9 @@ module Workhorse
       @@im.auth("#{WH::Config.im.password}")
       @@im.send(Jabber::Presence.new(nil, "Workhorse available", 1))
       self.log("Connected as #{WH::Config.im.jid}")
+      
+      WH::Actions.load
+      WH::Actions.run
       
       WH::Config.im.channels.to_hash().each do |cn,ca|
         muc = Jabber::MUC::MUCClient.new(@@im)

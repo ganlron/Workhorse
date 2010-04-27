@@ -1,41 +1,29 @@
 require 'rubygems'
 require 'eventmachine'
 require 'active_support'
-require 'workhorse/worker'
+require 'require_all'
 
 module Workhorse
   module Actions
     include EM::Deferrable
+    @@handlers = {}
+    @@muc_handlers = {}
+    
+    def self.load
+      require_all File.dirname(__FILE__) +'/actions'
+    end
+    
+    def self.handle(name, &block)
+      @@handlers[name] = block
+    end
+
+    def self.handle_muc(name, &block)
+      @@muc_handlers[name] = block
+    end
 
     def self.run
-      WH.im.add_message_callback do |m|
-        if m.type != :error and m.body
-          WH.log("Received message from #{m.from}: #{m.body}")
-          case m.body
-          when "test" :
-            WH.reply(m,"You sent #{m.body}")
-          when "ipath" :
-            WH.reply(m,$LOAD_PATH.inspect)
-          when "lift" :
-            EM.spawn do
-              worker = Worker.new
-              worker.callback {WH.reply(m, "Done lifting")}
-              worker.heavy_lifting
-            end.notify
-            WH.reply(m, "Scheduled heavy job...")
-          when "pull" :
-            EM.spawn do
-              worker = Worker.new
-              worker.callback {WH.reply(m, "Done pulling")}
-              worker.heavy_pulling
-            end.notify
-            WH.reply(m, "Scheduled heavy job...")
-          else 
-            if WH::Config.base.direct_default_response
-              WH.reply(m,"Dunno how to #{m.body}")
-            end
-          end
-        end
+      @@handlers.each do |name,block|
+        block.call
       end
     end
   
@@ -44,13 +32,9 @@ module Workhorse
       return
     end
     
-    muc.add_message_callback do |m|
-      fromus = "#{cn}/#{muc.nick}"
-      if m.from != fromus and WH::Config.base.group_default_response
-        WH.reply_muc(muc, m, "Dunno how to #{m.body}")
-      end
+    @@muc_handlers.each do |name,block|
+      block.call(cn,muc)
     end
-
   end
   
   end
