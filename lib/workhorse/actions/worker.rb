@@ -25,14 +25,13 @@ module Workhorse
   end
 end
 
-# Register direct message handler
-WH::Actions.handle('worker') {
-  WH.im.add_message_callback do |m|
-    if m.type != :error and m.body
-      WH.log("Received message from #{m.from}: #{m.body}")
-      case m.body
+handler = Class.new do
+  include WH::Actions::Handler
+  def self.handle(m)
+    WH.log("Received message from #{m.from}: #{m.body}")
+    case m.body
       when "test" :
-        WH.reply(m,"You sent #{m.body}")
+        WH.reply(m,"Test received")
       when "ipath" :
         WH.reply(m,$LOAD_PATH.inspect)
       when "lift" :
@@ -49,25 +48,14 @@ WH::Actions.handle('worker') {
           worker.heavy_pulling
         end.notify
         WH.reply(m, "Scheduled heavy job...")
-      else 
-        if WH::Config.base.direct_default_response
-          WH.reply(m,"Dunno how to #{m.body}")
-        end
-      end
     end
   end
-}
+  
+  def self.handle_muc(muc,m)
+    if m.body == 'test'
+      WH.reply_muc(muc, m, "Got your test!")
+    end
+  end
+end
 
-# Register MUC message handler
-WH::Actions.handle_muc('worker') { |cn,muc|
-  muc.add_message_callback do |m|
-    fromus = "#{cn}/#{muc.nick}"
-    if m.from != fromus
-      if m.body == 'test'
-        WH.reply_muc(muc, m, "Got your test!")
-      elsif WH::Config.base.group_default_response
-        WH.reply_muc(muc, m, "Dunno how to #{m.body}")
-      end
-    end
-  end
-}
+WH::Actions.add_handle('worker',handler)
