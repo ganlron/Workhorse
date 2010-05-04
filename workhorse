@@ -3,6 +3,8 @@ $LOAD_PATH.unshift( File.join(File.dirname(__FILE__),'lib') );
 
 require 'rubygems'
 require 'workhorse'
+require 'require_all'
+require_all File.dirname(__FILE__) +'/lib/workhorse/actions' rescue $stderr.puts $!
 
 trap("INT") { WH.interrupted = true }
 trap("TERM") { WH.interrupted = true }

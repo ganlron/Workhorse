@@ -44,7 +44,6 @@ module Workhorse
       @@im.send(Jabber::Presence.new(nil, "Workhorse available", 1))
       self.log("Connected as #{WH::Config.im.jid}")
       
-      WH::Actions.load
       WH::Actions.run
       
       WH::Config.im.channels.to_hash().each do |cn,ca|
@@ -77,6 +76,11 @@ module Workhorse
   
   def self.log(message,type="debug")
     Syslog.open('workhorse', Syslog::LOG_PID | Syslog::LOG_CONS) { |s| s.method(type).call message }
+  end
+  
+  def self.clean_jid(jid)
+    jid = Jabber::JID.new(jid)
+    return jid.strip.to_s
   end
 end
 

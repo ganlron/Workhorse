@@ -1,16 +1,12 @@
 require 'rubygems'
 require 'eventmachine'
 require 'active_support'
-require 'require_all'
 
 module Workhorse
   module Actions
+    mattr_accessor :handlers
     include EM::Deferrable
     @@handlers = {}
-    
-    def self.load
-      require_all File.dirname(__FILE__) +'/actions'
-    end
     
     def self.add_handle(name, c)
       @@handlers[name] = c
@@ -20,6 +16,7 @@ module Workhorse
       WH.im.add_message_callback do |m|
         if m.type != :error and m.body
           @@handlers.each do |name,c|
+            next unless WH::Config.allowed_handler?(name)
             c.handle(m)
           end
         end
@@ -35,6 +32,7 @@ module Workhorse
       unless m.body.nil?
         if m.from != "#{cn}/#{muc.nick}"
           @@handlers.each do |name,c|
+            next unless WH::Config.allowed_handler?(name)
             c.handle_muc(muc,m)
           end
         end

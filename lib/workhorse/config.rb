@@ -5,7 +5,7 @@ require 'configatron'
 
 module Workhorse
   module Config
-    mattr_accessor :daemon, :base, :im
+    mattr_accessor :daemon, :base, :im, :handlers
     
     # Load default configuration
     wh_config = configatron
@@ -32,6 +32,9 @@ module Workhorse
             :password => 'server4u'
           }
         }
+      },
+      :handlers => {
+        :system => true,
       }
     })
     
@@ -47,9 +50,21 @@ module Workhorse
       wh_config.configure_from_yaml( daemon_local_conf )
     end
     
+    # Load handlers local configuration
+    handlers_local_conf = File.join(File.dirname(__FILE__),'../../config/handlers_local.yml')
+    if (File.exists?(handlers_local_conf))
+      wh_config.configure_from_yaml( handlers_local_conf )
+    end
+    
+    wh_config.lock!
     @@im = wh_config.im
     @@base = wh_config.base
     @@daemon = wh_config.daemon
+    @@handlers = wh_config.handlers
+    
+    def self.allowed_handler?(handle)
+      self.handlers.retrieve(handle,false)
+    end
     
   end
 end
