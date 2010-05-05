@@ -13,7 +13,7 @@ module Workhorse
     end
     
     def self.identify_request(m)
-      words = m.body.squeeze.split(/\s+/)
+      words = m.body.squeeze(" ").split(/\s+/)
       h = words.shift.downcase
       c = words.empty? ? "none" : words.shift.downcase
       return h,c,words
