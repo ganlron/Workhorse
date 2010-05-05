@@ -15,7 +15,7 @@ module Workhorse
     def self.identify_request(m)
       words = m.body.squeeze.split(/\s+/)
       h = words.shift.downcase
-      c = words.shift.downcase
+      c = words.empty? ? "none" : words.shift.downcase
       return h,c
     end
 
@@ -24,7 +24,7 @@ module Workhorse
         if WH::Config.user_allowed?(m.from)
           if m.type != :error and m.body
             h,c = self.identify_request(m)
-            if @@handlers[h].nil?
+            if !@@handlers[h].nil?
               next unless WH::Config.active_handler?(h)
               next unless WH::Config.user_allowed_handler?(m.from,h,c)
               handler = @@handlers[h].new(m)
@@ -51,17 +51,17 @@ module Workhorse
         if m.from != "#{cn}/#{muc.nick}"
           if WH::Config.muc_user_allowed?(m.from)
             h,c = self.identify_request(m)
-            unless @@handlers[h].nil?
+            if @@handlers[h].nil?
               next unless WH::Config.active_handler?(h)
               next unless WH::Config.muc_user_allowed_handler?(m.from,h,c)
               handler = @@handlers[h].new(m,muc)
               if handler.respond_to?("handle_#{c}".to_sym)  
                 handler.send("handle_#{c}".to_sym)
               end
-            end
-          else
-            if WH::Config.base.group_default_response
-              WH.reply(m,"Sorry, not sure how to deal with #{m.body}",muc)
+            else
+              if WH::Config.base.group_default_response
+                WH.reply(m,"Sorry, not sure how to deal with #{m.body}",muc)
+              end
             end
           end
         end
