@@ -32,38 +32,34 @@ module Workhorse
 
       def handle_test
         ret = "Test Received"
-        if (@@muc.nil?)
-          WH.reply(@@message,ret)
-        else
-          WH.reply_muc(@@muc, @@message, ret) 
-        end
+        WH.reply(@@message,ret, @@muc)
       end
       
       def handle_ipath
         ret = $LOAD_PATH.inspect
-        if (@@muc.nil?)
-          WH.reply(@@message,ret)
-        else
-          WH.reply_muc(@@muc, @@message, ret)
-        end
+        WH.reply(@@message,ret, @@muc)
       end
       
       def handle_lift
-        EM.spawn do
-          worker = WH::Actions::Worker.new
-          worker.callback {WH.reply(@@message, "Done lifting")}
-          worker.heavy_lifting
-        end.notify
-        WH.reply(@@message, "Scheduled heavy job...")
+        if @@muc.nil?
+          EM.spawn do
+            worker = WH::Actions::Worker.new
+            worker.callback {WH.reply(@@message, "Done lifting")}
+            worker.heavy_lifting
+          end.notify
+          WH.reply(@@message, "Scheduled heavy job...")
+        end
       end
       
       def handle_pull
-        EM.spawn do
-          worker = WH::Actions::Worker.new
-          worker.callback {WH.reply(@@message, "Done pulling")}
-          worker.heavy_pulling
-        end.notify
-        WH.reply(@@message, "Scheduled heavy job...")
+        if @@muc.nil?
+          EM.spawn do
+            worker = WH::Actions::Worker.new
+            worker.callback {WH.reply(@@message, "Done pulling")}
+            worker.heavy_pulling
+          end.notify
+          WH.reply(@@message, "Scheduled heavy job...")
+        end
       end
       
     end

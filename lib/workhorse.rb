@@ -62,16 +62,14 @@ module Workhorse
     @@im.send(Jabber::Presence.new.set_show(:xa).set_status('Workhorse unavailable'))
   end
   
-  def self.reply(m, message="Dunno how to #{m.body}")
+  def self.reply(m, message="Dunno how to #{m.body}", muc=nil)
     r = Message.new(m.from, message)
     r.type = m.type
-    @@im.send(r)
-  end
-  
-  def self.reply_muc(muc, m, message="Dunno how to #{m.body}")
-    r = Message.new(nil, message)
-    r.type = m.type
-    muc.send(r)
+    if muc.nil?
+      @@im.send(r)
+    else
+      muc.send(r)
+    end
   end
   
   def self.log(message,type="debug")

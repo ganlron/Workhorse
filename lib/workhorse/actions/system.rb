@@ -23,14 +23,8 @@ module Workhorse
       def handle_uptime
         EM.spawn do
           whsys = WH::Actions::System.new
-          if (@@muc.nil?)
-            whsys.callback do |val|
-              WH.reply(@@message, val)
-            end
-          else
-            whsys.callback do |val|
-              WH.reply_muc(@@muc, @@message, val)
-            end
+          whsys.callback do |val|
+            WH.reply(@@message, val, @@muc)
           end
           whsys.uptime
         end.notify
