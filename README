@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 Workhorse is intended to be an XMPP communication system for servers, allowing commands to be sent to listening system and communication between systems
+=======
+Workhorse is intended to be an XMPP communication system for servers, allowing commands to be sent to listening system and communication between systems
+>>>>>>> a6b8a4deb42602c8726ea2776c7a281a00ded7c2

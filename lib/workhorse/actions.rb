@@ -16,20 +16,20 @@ module Workhorse
       words = m.body.squeeze.split(/\s+/)
       h = words.shift.downcase
       c = words.empty? ? "none" : words.shift.downcase
-      return h,c
+      return h,c,words
     end
 
     def self.run
       WH.im.add_message_callback do |m|
         if WH::Config.user_allowed?(m.from)
           if m.type != :error and m.body
-            h,c = self.identify_request(m)
+            h,c,w = self.identify_request(m)
             if !@@handlers[h].nil?
               next unless WH::Config.active_handler?(h)
               next unless WH::Config.user_allowed_handler?(m.from,h,c)
               handler = @@handlers[h].new(m)
               if handler.respond_to?("handle_#{c}".to_sym)
-                handler.send("handle_#{c}".to_sym)
+                handler.send("handle_#{c}".to_sym,w)
               end
             else
               if WH::Config.base.direct_default_response
@@ -50,13 +50,13 @@ module Workhorse
       unless m.body.nil?
         if m.from != "#{cn}/#{muc.nick}"
           if WH::Config.muc_user_allowed?(m.from)
-            h,c = self.identify_request(m)
-            if @@handlers[h].nil?
+            h,c,w = self.identify_request(m)
+            if !@@handlers[h].nil?
               next unless WH::Config.active_handler?(h)
               next unless WH::Config.muc_user_allowed_handler?(m.from,h,c)
               handler = @@handlers[h].new(m,muc)
-              if handler.respond_to?("handle_#{c}".to_sym)  
-                handler.send("handle_#{c}".to_sym)
+              if handler.respond_to?("handle_#{c}".to_sym)
+                handler.send("handle_#{c}".to_sym,w)
               end
             else
               if WH::Config.base.group_default_response
