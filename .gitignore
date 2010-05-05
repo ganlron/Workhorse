@@ -5,3 +5,4 @@
 *.sqlite
 *.csv
 *.tsv
+config/*

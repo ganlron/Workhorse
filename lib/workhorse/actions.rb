@@ -24,12 +24,16 @@ module Workhorse
         if WH::Config.user_allowed?(m.from)
           if m.type != :error and m.body
             h,c = self.identify_request(m)
-            unless @@handlers[h].nil?
+            if @@handlers[h].nil?
               next unless WH::Config.active_handler?(h)
               next unless WH::Config.user_allowed_handler?(m.from,h,c)
               handler = @@handlers[h].new(m)
               if handler.respond_to?("handle_#{c}".to_sym)
                 handler.send("handle_#{c}".to_sym)
+              end
+            else
+              if WH::Config.base.direct_default_response
+                WH.reply(m,"Sorry, not sure how to deal with #{m.body}")
               end
             end
           end
@@ -54,6 +58,10 @@ module Workhorse
               if handler.respond_to?("handle_#{c}".to_sym)  
                 handler.send("handle_#{c}".to_sym)
               end
+            end
+          else
+            if WH::Config.base.group_default_response
+              WH.reply(m,"Sorry, not sure how to deal with #{m.body}",muc)
             end
           end
         end
