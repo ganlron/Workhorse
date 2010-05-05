@@ -78,10 +78,6 @@ module Workhorse
     Syslog.open('workhorse', Syslog::LOG_PID | Syslog::LOG_CONS) { |s| s.method(type).call message }
   end
   
-  def self.clean_jid(jid)
-    jid = Jabber::JID.new(jid)
-    return jid.strip.to_s
-  end
 end
 
 WH = Workhorse

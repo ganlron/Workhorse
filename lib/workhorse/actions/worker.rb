@@ -25,37 +25,49 @@ module Workhorse
   end
 end
 
-handler = Class.new do
-  include WH::Actions::Handler
-  def self.handle(m)
-    WH.log("Received message from #{m.from}: #{m.body}")
-    case m.body
-      when "test" :
-        WH.reply(m,"Test received")
-      when "ipath" :
-        WH.reply(m,$LOAD_PATH.inspect)
-      when "lift" :
+module Workhorse
+  module Actions
+    class WorkerHandler
+      include WH::Actions::Handler
+
+      def handle_test
+        ret = "Test Received"
+        if (@@muc.nil?)
+          WH.reply(@@message,ret)
+        else
+          WH.reply_muc(@@muc, @@message, ret) 
+        end
+      end
+      
+      def handle_ipath
+        ret = $LOAD_PATH.inspect
+        if (@@muc.nil?)
+          WH.reply(@@message,ret)
+        else
+          WH.reply_muc(@@muc, @@message, ret)
+        end
+      end
+      
+      def handle_lift
         EM.spawn do
           worker = WH::Actions::Worker.new
-          worker.callback {WH.reply(m, "Done lifting")}
+          worker.callback {WH.reply(@@message, "Done lifting")}
           worker.heavy_lifting
         end.notify
-        WH.reply(m, "Scheduled heavy job...")
-      when "pull" :
+        WH.reply(@@message, "Scheduled heavy job...")
+      end
+      
+      def handle_pull
         EM.spawn do
           worker = WH::Actions::Worker.new
-          worker.callback {WH.reply(m, "Done pulling")}
+          worker.callback {WH.reply(@@message, "Done pulling")}
           worker.heavy_pulling
         end.notify
-        WH.reply(m, "Scheduled heavy job...")
-    end
-  end
-  
-  def self.handle_muc(muc,m)
-    if m.body == 'test'
-      WH.reply_muc(muc, m, "Got your test!")
+        WH.reply(@@message, "Scheduled heavy job...")
+      end
+      
     end
   end
 end
 
-WH::Actions.add_handle('worker',handler)
+WH::Actions.add_handle('worker',WH::Actions::WorkerHandler)

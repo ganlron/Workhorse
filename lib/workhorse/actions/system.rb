@@ -10,38 +10,34 @@ module Workhorse
         res = `uptime`
         set_deferred_status :succeeded, res
       end
+
+    end
+  end
+end
+
+module Workhorse
+  module Actions
+    class SystemHandler
+      include WH::Actions::Handler
+
+      def handle_uptime
+        EM.spawn do
+          whsys = WH::Actions::System.new
+          if (@@muc.nil?)
+            whsys.callback do |val|
+              WH.reply(@@message, val)
+            end
+          else
+            whsys.callback do |val|
+              WH.reply_muc(@@muc, @@message, val)
+            end
+          end
+          whsys.uptime
+        end.notify
+      end
       
     end
   end
 end
 
-handler = Class.new do
-  include WH::Actions::Handler
-  def self.handle(m)
-    case m.body
-    when "system uptime" :
-      EM.spawn do
-        whsys = WH::Actions::System.new
-        whsys.callback do |val|
-          WH.reply(m, val)
-        end
-        whsys.uptime
-      end.notify
-    end
-  end
-  
-  def self.handle_muc(muc,m)
-    case m.body
-    when "system uptime" :
-      EM.spawn do
-        whsys = WH::Actions::System.new
-        whsys.callback do |val|
-          WH.reply_muc(muc, m, val)
-        end
-        whsys.uptime
-      end.notify
-    end
-  end
-end
-
-WH::Actions.add_handle('system',handler)
+WH::Actions.add_handle('system',WH::Actions::SystemHandler)

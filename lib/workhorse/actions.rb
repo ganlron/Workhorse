@@ -11,13 +11,27 @@ module Workhorse
     def self.add_handle(name, c)
       @@handlers[name] = c
     end
+    
+    def self.identify_request(m)
+      words = m.body.squeeze.split(/\s+/)
+      h = words.shift.downcase
+      c = words.shift.downcase
+      return h,c
+    end
 
     def self.run
       WH.im.add_message_callback do |m|
-        if m.type != :error and m.body
-          @@handlers.each do |name,c|
-            next unless WH::Config.allowed_handler?(name)
-            c.handle(m)
+        if WH::Config.user_allowed?(m.from)
+          if m.type != :error and m.body
+            h,c = self.identify_request(m)
+            unless @@handlers[h].nil?
+              next unless WH::Config.active_handler?(h)
+              next unless WH::Config.user_allowed_handler?(m.from,h,c)
+              handler = @@handlers[h].new(m)
+              if handler.respond_to?("handle_#{c}".to_sym)
+                handler.send("handle_#{c}".to_sym)
+              end
+            end
           end
         end
       end 
@@ -31,9 +45,16 @@ module Workhorse
     muc.add_message_callback do |m|
       unless m.body.nil?
         if m.from != "#{cn}/#{muc.nick}"
-          @@handlers.each do |name,c|
-            next unless WH::Config.allowed_handler?(name)
-            c.handle_muc(muc,m)
+          if WH::Config.muc_user_allowed?(m.from)
+            h,c = self.identify_request(m)
+            unless @@handlers[h].nil?
+              next unless WH::Config.active_handler?(h)
+              next unless WH::Config.muc_user_allowed_handler?(m.from,h,c)
+              handler = @@handlers[h].new(m,muc)
+              if handler.respond_to?("handle_#{c}".to_sym)  
+                handler.send("handle_#{c}".to_sym)
+              end
+            end
           end
         end
       end
@@ -46,11 +67,13 @@ end
 module Workhorse
   module Actions
     module Handler
+      mattr_accessor :message, :muc
+      @@message = nil
+      @@muc = nil
 
-      def self.handle(m)
-      end
-
-      def self.handle_muc(muc,m)
+      def initialize(message=nil,muc=nil)
+        @@message = message
+        @@muc = muc
       end
 
     end
