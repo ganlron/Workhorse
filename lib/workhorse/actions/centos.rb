@@ -7,10 +7,10 @@ module Workhorse
       mattr_accessor :methods
       include EM::Deferrable
       
-      @@methods = ["uptime", "hardware", "kernel", "hostname", "os"]
+      @@methods = ["update","version"]
 
       def update 
-        res = `yum -y update`
+        res = `sudo yum -y update`
         set_deferred_status :succeeded, res
       end
       
