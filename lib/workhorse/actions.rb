@@ -27,9 +27,9 @@ module Workhorse
             if !@@handlers[h].nil?
               next unless WH::Config.active_handler?(h)
               next unless WH::Config.user_allowed_handler?(m.from,h,c)
-              handler = @@handlers[h].new(m)
+              handler = @@handlers[h].new(m,w)
               if handler.respond_to?("handle_#{c}".to_sym)
-                handler.send("handle_#{c}".to_sym,w)
+                handler.send("handle_#{c}".to_sym)
               end
             else
               if WH::Config.base.direct_default_response
@@ -54,7 +54,7 @@ module Workhorse
             if !@@handlers[h].nil?
               next unless WH::Config.active_handler?(h)
               next unless WH::Config.muc_user_allowed_handler?(m.from,h,c)
-              handler = @@handlers[h].new(m,muc)
+              handler = @@handlers[h].new(m,w,muc)
               if handler.respond_to?("handle_#{c}".to_sym)
                 handler.send("handle_#{c}".to_sym,w)
               end
@@ -75,13 +75,14 @@ end
 module Workhorse
   module Actions
     module Handler
-      mattr_accessor :message, :muc
-      @@message = nil
-      @@muc = nil
+      @message = nil
+      @muc = nil
+      @args = []
 
-      def initialize(message=nil,muc=nil)
-        @@message = message
-        @@muc = muc
+      def initialize(message=nil,args=[],muc=nil)
+        @message = message
+        @args = args
+        @muc = muc
       end
 
     end

@@ -21,7 +21,7 @@ module Workhorse
               smtp = Net::SMTP.new(mx.exchange.to_s, 25).start('localhost')
               results[mx.exchange.to_s] = 'PASS'
               good = 1
-            rescue
+            rescue Exception
               results[mx.exchange.to_s] = 'FAIL'
             end
           end
@@ -48,21 +48,21 @@ module Workhorse
     class TestMXHandler
       include WH::Actions::Handler
 
-      def handle_test(w)
-        if @@muc.nil?
-          dom = w.empty? ? nil : w.shift.downcase
-          verbose = w.empty? ? false : true
+      def handle_test
+        if @muc.nil?
+          dom = @args.empty? ? nil : @args.shift.downcase
+          verbose = @args.empty? ? false : true
           if (dom.nil?)
-            WH.reply(@@message, "Please specify the domain to test")
+            WH.reply(@message, "Please specify the domain to test")
           else
-            EM.spawn do
+            EM.spawn do |mess,muc,dom,verbose|
               m = WH::Actions::TestMX.new
               m.callback do |val|
-                WH.reply(@@message, val, @@muc)
+                WH.reply(mess, val, muc)
               end
-              m.test(dom,verbose)
-            end.notify
-            WH.reply(@@message, "Scheduled to test #{dom}...")
+              Thread.new { m.test(dom,verbose) }
+            end.notify @message, @muc, dom, verbose
+            WH.reply(@message, "Scheduled to test #{dom}...")
           end
         end
       end

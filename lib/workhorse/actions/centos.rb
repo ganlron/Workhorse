@@ -30,13 +30,13 @@ module Workhorse
       
       WH::Actions::Centos.methods.each do |m|
         define_method "handle_#{m}".to_sym do
-          EM.spawn do
+          EM.spawn do |mess,muc|
             whsys = WH::Actions::Centos.new
             whsys.callback do |val|
-              WH.reply(@@message, val, @@muc)
+              WH.reply(mess, val, muc)
             end
-            whsys.send(m.to_sym)
-          end.notify
+            Thread.new { whsys.send(m.to_sym) }
+          end.notify @message, @muc
         end
       end
 
