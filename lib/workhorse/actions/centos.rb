@@ -7,8 +7,6 @@ module Workhorse
       mattr_accessor :methods
       include EM::Deferrable
       
-      @@methods = ["update","version"]
-
       def update 
         res = `sudo yum -y update`
         set_deferred_status :succeeded, res
@@ -28,18 +26,26 @@ module Workhorse
     class CentosHandler
       include WH::Actions::Handler
       
-      WH::Actions::Centos.methods.each do |m|
-        define_method "handle_#{m}".to_sym do
-          EM.spawn do |mess,muc|
-            whsys = WH::Actions::Centos.new
-            whsys.callback do |val|
-              WH.reply(mess, val, muc)
-            end
-            Thread.new { whsys.send(m.to_sym) }
-          end.notify @message, @muc
-        end
+      def handle_update
+        EM.spawn do |mess,muc|
+          co = WH::Actions::Centos.new
+          co.callback do |val|
+            WH.reply(mess, val, muc)
+          end
+          co.update
+        end.notify @message, @muc
       end
-
+      
+      def handle_version
+        EM.spawn do |mess,muc|
+          co = WH::Actions::Centos.new
+          co.callback do |val|
+            WH.reply(mess, val, muc)
+          end
+          Thread.new { co.version }
+        end.notify @message, @muc
+      end
+      
     end
   end
 end
