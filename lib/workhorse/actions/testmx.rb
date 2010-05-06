@@ -8,7 +8,9 @@ module Workhorse
     class TestMX
       include EM::Deferrable
       
-      def test(dom,verbose)
+      def test(args)
+        dom = args.shift
+        verbose = args.shift
         # Pull the MX records for the domain
         dns = Resolv::DNS.open
         mail_servers = dns.getresources(dom, Resolv::DNS::Resource::IN::MX)
@@ -55,13 +57,14 @@ module Workhorse
           if (dom.nil?)
             WH.reply(@message, "Please specify the domain to test")
           else
-            EM.spawn do |mess,muc,dom,verbose|
-              m = WH::Actions::TestMX.new
-              m.callback do |val|
-                WH.reply(mess, val, muc)
-              end
-              Thread.new { m.test(dom,verbose) }
-            end.notify @message, @muc, dom, verbose
+            self.nonblocking(WH::Actions::TestMX,"test",dom,verbose)
+#            EM.spawn do |mess,muc,dom,verbose|
+#              m = WH::Actions::TestMX.new
+#              m.callback do |val|
+#                WH.reply(mess, val, muc)
+#              end
+#              Thread.new { m.test(dom,verbose) }
+#            end.notify @message, @muc, dom, verbose
             WH.reply(@message, "Scheduled to test #{dom}...")
           end
         end

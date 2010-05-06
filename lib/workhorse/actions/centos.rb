@@ -27,23 +27,11 @@ module Workhorse
       include WH::Actions::Handler
       
       def handle_update
-        EM.spawn do |mess,muc|
-          co = WH::Actions::Centos.new
-          co.callback do |val|
-            WH.reply(mess, val, muc)
-          end
-          co.update
-        end.notify @message, @muc
+        self.blocking(WH::Actions::Centos,"update")
       end
       
       def handle_version
-        EM.spawn do |mess,muc|
-          co = WH::Actions::Centos.new
-          co.callback do |val|
-            WH.reply(mess, val, muc)
-          end
-          Thread.new { co.version }
-        end.notify @message, @muc
+        self.nonblocking(WH::Actions::Centos,"version")
       end
       
     end

@@ -45,13 +45,7 @@ module Workhorse
       
       WH::Actions::System.methods.each do |m|
         define_method "handle_#{m}".to_sym do
-          EM.spawn do |mess,muc|
-            whsys = WH::Actions::System.new
-            whsys.callback do |val|
-              WH.reply(mess, val, muc)
-            end
-            Thread.new { whsys.send(m.to_sym) }
-          end.notify @message, @muc
+          self.nonblocking(WH::Actions::System,m)
         end
       end
 

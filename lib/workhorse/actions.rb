@@ -85,6 +85,31 @@ module Workhorse
         @muc = muc
       end
 
+      def blocking(c,m,*args)
+        EM.spawn do |mess,muc,args|
+          action = c.new
+          action.callback do |response|
+            WH.reply(mess, response, muc)
+          end
+          action.send(m.to_sym)
+        end.notify @message, @muc, args
+      end
+      
+      def nonblocking(c,m,*args)
+        EM.spawn do |mess,muc,args|
+          action = c.new
+          action.callback do |response|
+            WH.reply(mess, response, muc)
+          end
+          Thread.new { 
+            if (args.empty?)
+              action.send(m.to_sym)
+            else
+              action.send(m.to_sym,args)
+            end
+          }
+        end.notify @message, @muc, args
+      end
     end
   end
 end
