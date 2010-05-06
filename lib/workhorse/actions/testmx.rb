@@ -55,17 +55,10 @@ module Workhorse
           dom = @args.empty? ? nil : @args.shift.downcase
           verbose = @args.empty? ? false : true
           if (dom.nil?)
-            WH.reply(@message, "Please specify the domain to test")
+            self.reply("Please specify the domain to test")
           else
             self.nonblocking(WH::Actions::TestMX,"test",dom,verbose)
-#            EM.spawn do |mess,muc,dom,verbose|
-#              m = WH::Actions::TestMX.new
-#              m.callback do |val|
-#                WH.reply(mess, val, muc)
-#              end
-#              Thread.new { m.test(dom,verbose) }
-#            end.notify @message, @muc, dom, verbose
-            WH.reply(@message, "Scheduled to test #{dom}...")
+            self.reply("Scheduled to test #{dom}...")
           end
         end
       end

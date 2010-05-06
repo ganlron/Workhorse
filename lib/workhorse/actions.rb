@@ -84,22 +84,51 @@ module Workhorse
         @args = args
         @muc = muc
       end
+      
+      def create_handler(m,type,c,*args)
+        return unless m and m.is_a? String
+        return unless c and c.is_a? Class
+        type = "blocking" unless type and type.is_a? String
+        
+        define_method "handle_#{m}".to_sym do
+          case type
+          when "nonblocking"
+            self.nonblocking(c,m,*args)
+          when "blocking"
+            self.blocking(c,m,*args)
+          end
+        end
+      end
+      
+      def reply(response="Dunno how to")
+        r = Message.new(@message.from, response)
+        r.type = @message.type
+        if @muc.nil?
+          WH.im.send(r)
+        else
+          @muc.send(r)
+        end
+      end
 
       def blocking(c,m,*args)
-        EM.spawn do |mess,muc,args|
+        EM.spawn do |this,args|
           action = c.new
           action.callback do |response|
-            WH.reply(mess, response, muc)
+            this.reply(response)
           end
-          action.send(m.to_sym)
-        end.notify @message, @muc, args
+          if (args.empty?)
+            action.send(m.to_sym)
+          else
+            action.send(m.to_sym,args)
+          end
+        end.notify self, args
       end
       
       def nonblocking(c,m,*args)
-        EM.spawn do |mess,muc,args|
+        EM.spawn do |this,args|
           action = c.new
           action.callback do |response|
-            WH.reply(mess, response, muc)
+            this.reply(response)
           end
           Thread.new { 
             if (args.empty?)
@@ -108,8 +137,9 @@ module Workhorse
               action.send(m.to_sym,args)
             end
           }
-        end.notify @message, @muc, args
+        end.notify self, args
       end
+      
     end
   end
 end

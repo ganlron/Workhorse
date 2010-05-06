@@ -11,7 +11,7 @@ module Workhorse
           puts "Lifted #{i}"
           sleep 0.1
         end
-        set_deferred_status :succeeded
+        set_deferred_status :succeeded, "Done lifting"
       end
   
       def heavy_pulling
@@ -19,7 +19,7 @@ module Workhorse
           puts "Pulled #{i}"
           sleep 0.1
         end
-        set_deferred_status :succeeded
+        set_deferred_status :succeeded, "Done pulling"
       end
     end
   end
@@ -31,34 +31,24 @@ module Workhorse
       include WH::Actions::Handler
 
       def handle_test
-        ret = "Test Received"
-        WH.reply(@message,ret, @muc)
+        self.reply("Test Received")
       end
       
       def handle_ipath
-        ret = $LOAD_PATH.inspect
-        WH.reply(@message,ret, @muc)
+        self.reply($LOAD_PATH.inspect)
       end
       
       def handle_lift
         if @muc.nil?
-          EM.spawn do |mess|
-            worker = WH::Actions::Worker.new
-            worker.callback {WH.reply(mess, "Done lifting")}
-            Thread.new { worker.heavy_lifting }
-          end.notify @message
-          WH.reply(@message, "Scheduled heavy job...")
+          self.nonblocking(WH::Actions::Worker,"heavy_lifting")
+          self.reply("Scheduled heavy job...")
         end
       end
       
       def handle_pull
         if @muc.nil?
-          EM.spawn do |mess|
-            worker = WH::Actions::Worker.new
-            worker.callback {WH.reply(mess, "Done pulling")}
-            Thread.new { worker.heavy_pulling }
-          end.notify @message
-          WH.reply(@message, "Scheduled heavy job...")
+          self.nonblocking(WH::Actions::Worker,"heavy_pulling")
+          self.reply("Scheduled heavy job...")
         end
       end
       

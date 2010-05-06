@@ -4,7 +4,6 @@ require 'eventmachine'
 module Workhorse
   module Actions
     class Centos
-      mattr_accessor :methods
       include EM::Deferrable
       
       def update 
