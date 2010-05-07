@@ -6,11 +6,11 @@ require 'net/smtp'
 module Workhorse
   module Actions
     class TestMX
-      include EM::Deferrable
+      include WH::Actions::Handler
       
-      def test(args)
-        dom = args.shift
-        verbose = args.shift
+      def test
+        dom = @args[1]
+        verbose = @args[2]
         # Pull the MX records for the domain
         dns = Resolv::DNS.open
         mail_servers = dns.getresources(dom, Resolv::DNS::Resource::IN::MX)
@@ -35,34 +35,40 @@ module Workhorse
               res << "#{mx} " << "= " << "#{testr}\n"
             end
           end
-          set_deferred_status :succeeded, res
+          self.succeeded(res)
         else
-          set_deferred_status :succeeded, "Domain #{dom} does not exist or did not return MX records"
+          self.failed("Domain #{dom} does not exist or did not return MX records")
         end
       end
-
-    end
-  end
-end
-
-module Workhorse
-  module Actions
-    class TestMXHandler
-      include WH::Actions::Handler
-
-      def handle_test
+      
+      def handle
         if @muc.nil?
-          dom = @args.empty? ? nil : @args.shift.downcase
-          verbose = @args.empty? ? false : true
-          if (dom.nil?)
-            self.reply("Please specify the domain to test")
-          else
-            self.nonblocking(WH::Actions::TestMX,"test",dom,verbose)
-            self.reply("Scheduled to test #{dom}...")
+          dom = @args[1]
+          if dom.nil?
+            # Does command appear to be a domain instead?
+            if @command.match(/\./)
+              dom = @command
+              @args[1] = @command
+              @args[0] = "test"
+              @command = "test"
+            end
           end
-        end
+          
+          case @command
+          when "test"
+            if dom.nil?
+              self.reply("Please specify the domain to test")
+            else
+              self.nonblocking("test")
+              self.reply("Scheduled to test #{dom}")
+            end
+          else
+            self.reply("TestMX instructions:")
+          end
+        end    
       end
+      
     end
   end
 end
-WH::Actions.add_handle('testmx',WH::Actions::TestMXHandler)
+WH::Actions.add_handle('testmx',WH::Actions::TestMX)

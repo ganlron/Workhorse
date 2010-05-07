@@ -8,7 +8,7 @@ require 'net/smtp'
 module Workhorse
   module Actions
     class Exim
-      include EM::Deferrable
+      include WH::Actions::Handler
       
       @@exim = File.exists?("/usr/local/bin/exim") ? "/usr/local/bin/exim" : File.exists?("/usr/bin/exim") ? "/usr/bin/exim" : nil
       @@mailq = File.exists?("/usr/bin/mailq") ? "/usr/bin/mailq" : nil
@@ -20,7 +20,7 @@ module Workhorse
           messages = Array.new
           msg = nil
           
-          mailq = %x{#{@@mailq} 2>&1}
+          mailq = self.system(@@mailq)
 
           mailq.each do |m|
               if m =~ /^\s*(.+?)\s+(.+?)\s+(.+-.+-.+) <(.*)>/
@@ -54,28 +54,20 @@ module Workhorse
             response << "Message #{m[:msgid]} from #{m[:sender]} to #{m[:recipients].join(", ")}\n"
           end
         end
-        set_deferred_status :succeeded, response
+        self.succeeded(response)
       end
- 
-    end
-  end
-end
-
-module Workhorse
-  module Actions
-    class EximHandler
-      include WH::Actions::Handler
       
-      def handle_mailq
-        self.nonblocking(WH::Actions::Exim,"mailq_response")
-      end
-
-      def handle_none
+      def handle
         next unless @muc.nil?
-        self.reply("Exim instructions here")
+        case @command
+        when "mailq"
+          self.nonblocking("mailq_response")
+        else
+          self.reply("Exim instructions here")
+        end
       end
-      
+
     end
   end
 end
-WH::Actions.add_handle('exim',WH::Actions::EximHandler)
+WH::Actions.add_handle('exim',WH::Actions::Exim)

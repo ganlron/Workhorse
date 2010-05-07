@@ -15,7 +15,7 @@ module Workhorse
     def self.identify_request(m)
       words = m.body.squeeze(" ").split(/\s+/)
       h = words.shift.downcase
-      c = words.empty? ? "none" : words.shift.downcase
+      c = words.empty? ? "none" : words[0].downcase
       return h,c,words
     end
 
@@ -27,9 +27,9 @@ module Workhorse
             if !@@handlers[h].nil?
               next unless WH::Config.active_handler?(h)
               next unless WH::Config.user_allowed_handler?(m.from,h,c)
-              handler = @@handlers[h].new(m,w)
-              if handler.respond_to?("handle_#{c}".to_sym)
-                handler.send("handle_#{c}".to_sym)
+              handler = @@handlers[h].new(m,c,w)
+              if handler.respond_to?("handle".to_sym)
+                handler.handle
               end
             else
               if WH::Config.base.direct_default_response
@@ -54,9 +54,9 @@ module Workhorse
             if !@@handlers[h].nil?
               next unless WH::Config.active_handler?(h)
               next unless WH::Config.muc_user_allowed_handler?(m.from,h,c)
-              handler = @@handlers[h].new(m,w,muc)
-              if handler.respond_to?("handle_#{c}".to_sym)
-                handler.send("handle_#{c}".to_sym,w)
+              handler = @@handlers[h].new(m,c,w,muc)
+              if handler.respond_to?("handle".to_sym)
+                handler.handle
               end
             else
               if WH::Config.base.group_default_response
@@ -75,29 +75,17 @@ end
 module Workhorse
   module Actions
     module Handler
+      include EM::Deferrable
       @message = nil
+      @command = nil
       @muc = nil
       @args = []
 
-      def initialize(message=nil,args=[],muc=nil)
+      def initialize(message=nil,command=nil,args=[],muc=nil)
         @message = message
+        @command = command
         @args = args
         @muc = muc
-      end
-      
-      def create_handler(m,type,c,*args)
-        return unless m and m.is_a? String
-        return unless c and c.is_a? Class
-        type = "blocking" unless type and type.is_a? String
-        
-        define_method "handle_#{m}".to_sym do
-          case type
-          when "nonblocking"
-            self.nonblocking(c,m,*args)
-          when "blocking"
-            self.blocking(c,m,*args)
-          end
-        end
       end
       
       def reply(response="Dunno how to")
@@ -110,34 +98,42 @@ module Workhorse
         end
       end
 
-      def blocking(c,m,*args)
-        EM.spawn do |this,args|
-          action = c.new
-          action.callback do |response|
+      def blocking(m)
+        return unless self.respond_to?(m.to_sym)
+        EM.spawn do |this|
+          this.callback do |response|
             this.reply(response)
           end
-          if (args.empty?)
-            action.send(m.to_sym)
-          else
-            action.send(m.to_sym,args)
+          this.errback do |response|
+            this.reply(response)
           end
-        end.notify self, args
+          this.send(m.to_sym)
+        end.notify self
       end
       
-      def nonblocking(c,m,*args)
-        EM.spawn do |this,args|
-          action = c.new
-          action.callback do |response|
+      def nonblocking(m)
+        return unless self.respond_to?(m.to_sym)
+        EM.spawn do |this|
+          this.callback do |response|
             this.reply(response)
           end
-          Thread.new { 
-            if (args.empty?)
-              action.send(m.to_sym)
-            else
-              action.send(m.to_sym,args)
-            end
-          }
-        end.notify self, args
+          this.errback do |response|
+            this.reply(response)
+          end
+          Thread.new { this.send(m.to_sym) }
+        end.notify self
+      end
+      
+      def succeeded(response="Command completed successfully")
+        set_deferred_status :succeeded, response
+      end
+      
+      def failed(response="Command failed")
+        set_deferred_status :failed, response
+      end
+      
+      def system(c)
+         %x{#{c} 2>&1}
       end
       
     end
