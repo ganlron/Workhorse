@@ -1,10 +1,4 @@
 # netGUARD Queue Management Module
-
-require 'rubygems'
-require 'eventmachine'
-require 'resolv'
-require 'net/smtp'
-
 module Workhorse
   module Actions
     class Exim

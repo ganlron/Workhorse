@@ -1,5 +1,3 @@
-require 'rubygems'
-require 'eventmachine'
 require 'resolv'
 require 'net/smtp'
 

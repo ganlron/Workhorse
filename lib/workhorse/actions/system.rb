@@ -1,6 +1,3 @@
-require 'rubygems'
-require 'eventmachine'
-
 module Workhorse
   module Actions
     class System
