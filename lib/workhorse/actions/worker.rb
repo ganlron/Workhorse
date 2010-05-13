@@ -2,6 +2,7 @@ module Workhorse
   module Actions
     class Worker
       include WH::Actions::Handler
+      VERSION = "0.01"
       
       def heavy_lifting
         30.times do |i|

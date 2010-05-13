@@ -2,6 +2,7 @@ module Workhorse
   module Actions
     class Centos
       include WH::Actions::Handler
+      VERSION = "0.01"
       
       def update 
         res = self.system("sudo yum -y update")
@@ -26,4 +27,6 @@ module Workhorse
   end
 end
 
-WH::Actions.add_handle('centos',WH::Actions::Centos)
+if File.exists?("/usr/bin/yum")
+  WH::Actions.add_handle('centos',WH::Actions::Centos)
+end

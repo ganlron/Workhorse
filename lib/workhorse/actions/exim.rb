@@ -3,18 +3,20 @@ module Workhorse
   module Actions
     class Exim
       include WH::Actions::Handler
+      VERSION = "0.01"
+      DESCRIPTION = "Query and control Exim"
       
       @@exim = File.exists?("/usr/local/sbin/exim") ? "/usr/local/sbin/exim" : File.exists?("/usr/sbin/exim") ? "/usr/sbin/exim" : nil
-      if WH::Config.base.use_sudo
+      if WH::Config.base.use_sudo and !@@exim.nil?
         @@exim = WH::Config.base.sudo_path + ' ' + @@exim
       end
       @@mailq = File.exists?("/usr/bin/mailq") ? "/usr/bin/mailq" : nil
       @@exiqsumm = File.exists?("/usr/local/sbin/exiqsumm") ? "/usr/local/sbin/exiqsumm" : File.exists?("/usr/sbin/exiqsumm") ? "/usr/sbin/exiqsumm" : nil
-      if WH::Config.base.use_sudo
+      if WH::Config.base.use_sudo and !@@exiqsumm.nil?
         @@exiqsumm = WH::Config.base.sudo_path + ' ' + @@exiqsumm
       end
       @@exiqgrep = File.exists?("/usr/local/sbin/exiqgrep") ? "/usr/local/sbin/exiqgrep" : File.exists?("/usr/sbin/exiqgrep") ? "/usr/sbin/exiqgrep" : nil
-      if WH::Config.base.use_sudo
+      if WH::Config.base.use_sudo and !@@exiqgrep.nil?
         @@exiqgrep = WH::Config.base.sudo_path + ' ' + @@exiqgrep
       end
       @@xargs = File.exists?("/usr/bin/xargs") ? "/usr/bin/xargs" : nil
@@ -202,6 +204,7 @@ module Workhorse
       
       def handle
         next unless @muc.nil?
+        next if @@exim.nil?
         case @command
         when "mailq"
           self.nonblocking("mailq_response")
@@ -235,11 +238,23 @@ module Workhorse
             self.reply("Failed to remove bounce messages")
           end
         else
-          self.reply("Exim instructions here")
+          help = "Usage: exim <command> <optional>\n\n" +
+          "Commands:\n\n" +
+          "\tmailq - Returns a list of every message that is queueing\n" +
+          "\tsize - Returns a count of how many messages are queueing\n" +
+          "\tsummary - Summarizes the queueing messages by recipient domain\n" +
+          "\tqueueing <domain|string> <?grep> - Indicate if a domain is queueing, or search for a string using grep\n" +
+          "\tretry <?domain> - If a domain is specified will retry queued mail for that domain, otherwise will retry all\n" +
+          "\trm <message-id> - Will remove specified message id from the queue\n" +
+          "\trmbounces - Will remove all bounces from the queue"
+          self.reply(help)
         end
       end
 
     end
   end
 end
-WH::Actions.add_handle('exim',WH::Actions::Exim)
+
+if File.exists?("/usr/local/sbin/exim") or File.exists?("/usr/sbin/exim")
+  WH::Actions.add_handle('exim',WH::Actions::Exim)
+end

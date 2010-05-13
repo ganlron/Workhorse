@@ -5,6 +5,7 @@ module Workhorse
   module Actions
     class TestMX
       include WH::Actions::Handler
+      VERSION = "0.01"
       
       def test
         dom = @args[1]

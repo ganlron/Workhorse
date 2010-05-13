@@ -6,6 +6,7 @@ module Workhorse
   module Actions
     mattr_accessor :handlers
     include EM::Deferrable
+    VERSION = "0.01"
     @@handlers = {}
     
     def self.add_handle(name, c)
@@ -76,6 +77,8 @@ module Workhorse
   module Actions
     module Handler
       include EM::Deferrable
+      VERSION = "0.01"
+      DESCRIPTION = nil
       @message = nil
       @command = nil
       @muc = nil
@@ -98,33 +101,35 @@ module Workhorse
         end
       end
 
-      def blocking(m)
+      def blocking(m,&a)
         return unless self.respond_to?(m.to_sym)
-        EM.spawn do |this|
+        EM.spawn do |this,a|
           this.callback do |response|
-            this.reply(response)
+            this.reply(response) if response
+            a.call(this) if a
           end
           this.errback do |response|
-            this.reply(response)
+            this.reply(response) if response
           end
           this.send(m.to_sym)
-        end.notify self
+        end.notify self,a
       end
       
-      def nonblocking(m)
+      def nonblocking(m,&a)
         return unless self.respond_to?(m.to_sym)
-        EM.spawn do |this|
+        EM.spawn do |this,a|
           this.callback do |response|
-            this.reply(response)
+            this.reply(response) if response
+            a.call(this) if a
           end
           this.errback do |response|
-            this.reply(response)
+            this.reply(response) if response
           end
           Thread.new { this.send(m.to_sym) }
-        end.notify self
+        end.notify self,a
       end
       
-      def succeeded(response="Command completed successfully")
+      def succeeded(response=nil)
         set_deferred_status :succeeded, response
       end
       

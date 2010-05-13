@@ -12,6 +12,7 @@ require 'workhorse/actions'
 
 module Workhorse
   mattr_accessor :im, :interrupted
+  VERSION = "0.01"
   @@interrupted = false
   
   def self.run

@@ -2,6 +2,7 @@ module Workhorse
   module Actions
     class System
       include WH::Actions::Handler
+      VERSION = "0.01"
       
       def uptime
         res = self.system("uptime")
