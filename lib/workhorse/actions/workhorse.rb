@@ -139,8 +139,12 @@ module Workhorse
       end
       
       def add_access
-        # arg 1 should be username, arg 2 should be the handler, and any remaining args will be the commands to add access to
-        self.succeeded("Still a work in progress")
+        # arg 2 should be username, arg 3 should be the handler, and any remaining args will be the commands to add access to
+        if @args[2] and @args[2].match(/^[^@]+@[^@]+$/) and @args[3]
+          self.succeeded("Still a work in progress")
+        else
+          self.failed("You must supply at least the username and the handler to add access to")
+        end
       end
 
       def handle
