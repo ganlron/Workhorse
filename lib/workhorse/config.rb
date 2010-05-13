@@ -160,6 +160,9 @@ module Workhorse
         return false
       end
     end
+    
+    def self.add_access(user=nil,handler=nil,*commands)
+    end
         
     # Load default configuration
     @wh_config = configatron
