@@ -117,10 +117,10 @@ module Workhorse
         if self.user_defined?(user)
           return false
         else
-          lp,dom = user.downcase.split('@')
+          lp,dom = user.downcase.gsub(/[^\w@]/,"_").split('@')
           u = WH::Config.users.to_hash
           m = WH::Config.muc_handles.to_hash
-          u[dom.gsub(/[^\w]/,"_").to_sym][lp.gsub(/[^\w]/,"_").to_sym] = {
+          u[dom.to_sym][lp.to_sym] = {
             :allowed => "none"
           }
           config = {
@@ -140,10 +140,10 @@ module Workhorse
       return false unless user and handle
       if user.match(/^[^@]+@[^@]+$/) and handle.match(/^[^\/]+\/[^\/]+$/)
         if self.user_defined?(user)
-          server,nick = handle.downcase.split('/')
+          server,nick = handle.downcase.gsub(/[^\w\/]/,"_").split('/')
           u = WH::Config.users.to_hash
           m = WH::Config.muc_handles.to_hash
-          m[server.gsub(/[^\w]/,"_").to_sym][nick.gsub(/[^\w]/,"_").to_sym] = user.to_s
+          m[server.to_sym][nick.to_sym] = user.to_s
           config = {
             :users => u,
             :muc_handles => m
@@ -156,6 +156,42 @@ module Workhorse
         else
           return false
         end       
+      else
+        return false
+      end
+    end
+    
+    def self.add_access(user=nil,handler=nil,commands=[])
+      if user and user.match(/^[^@]+@[^@]+$/) and handler
+        if self.user_defined?(user) and self.active_handler?(handler)
+          lp,dom = user.downcase.gsub(/[^\w@]/,"_").split('@')
+          u = WH::Config.users.to_hash
+          m = WH::Config.muc_handles.to_hash
+          if commands.empty?
+            hauth = {
+              :allowed => "all"
+            }
+          else
+            comms = {}
+            commands.each do |c|
+              comms[c.downcase.to_sym] = "allowed"
+            end
+            hauth = {
+              :allowed => "limited",
+              :commands => comms
+            }
+          end
+          u[dom.to_sym][lp.to_sym][:handlers] = {} unless u[dom.to_sym][lp.to_sym][:handlers]
+          u[dom.to_sym][lp.to_sym][:handlers][handler.downcase.to_sym] = hauth
+          config = {
+            :users => u,
+            :muc_handles => m
+          }
+          puts config.inspect
+          return true
+        else
+          return false
+        end
       else
         return false
       end

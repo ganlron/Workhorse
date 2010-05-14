@@ -139,8 +139,19 @@ module Workhorse
       end
       
       def add_access
-        # arg 1 should be username, arg 2 should be the handler, and any remaining args will be the commands to add access to
-        self.succeeded("Still a work in progress")
+        # arg 2 should be username, arg 3 should be the handler, and any remaining args will be the commands to add access to
+        user = @args[2]
+        handler = @args[3]
+        commands = @args.slice(4..-1)
+        if user and user.match(/^[^@]+@[^@]+$/) and handler
+          if WH::Config.add_access(user,handler,commands)
+            self.succeeded("Still a work in progress")
+          else
+            self.failed("Failed to add access to #{handler} for #{user}")
+          end
+        else
+          self.succeeded("Please supply both the username and the handler/action to grant access to")
+        end
       end
 
       def handle
