@@ -14,7 +14,7 @@ module Workhorse
     end
     
     def self.identify_request(m)
-      words = m.body.squeeze(" ").split(/\s+/)
+      words = m.body.gsub(/<\/?[^>]*>/, "").gsub(/\302\240/," ").squeeze(" ").split(/\s+/)
       h = words.shift.downcase
       c = words.empty? ? "none" : words[0].downcase
       return h,c,words

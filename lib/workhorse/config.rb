@@ -38,6 +38,33 @@ module Workhorse
       return true
     end
     
+    def self.superuser?(user)
+      dom,node,resource = self.split_jid(user.downcase)
+      users = self.users.to_hash
+      user = users[dom.to_sym][node.to_sym]
+      return false unless user
+      return true if user[:allowed] == "all"
+      return false
+    end
+    
+    def self.muc_superuser?(user)
+      muc_handle = self.link_muc(user)
+      return false if muc_handle.nil?
+      self.superuser?(muc_handle)
+    end
+    
+    # Return an array of muc_handles linked to the JID
+    def self.user_handles(user)
+      muc_handles = self.muc_handles.to_hash
+      user_handles = []
+      muc_handles.each do |server,ss|
+        ss.each do |handle,hs|
+          user_handles.push(server.to_s + '/' + handle.to_s) if hs.downcase == user.downcase
+        end
+      end
+      return user_handles
+    end
+    
     def self.user_allowed?(user)
       dom,node,resource = self.split_jid(user)
       users = self.users.to_hash
@@ -112,6 +139,13 @@ module Workhorse
       end
     end
     
+    def self.reload_users
+      @wh_config.remove("users")
+      @wh_config.remove("muc_handles")
+      self.load_local_config("users_local_conf")
+      self.set_vars
+    end
+    
     def self.add_user(user=nil)
       if user and user.match(/^[^@]+@[^@]+$/)
         if self.user_defined?(user)
@@ -136,8 +170,43 @@ module Workhorse
       end
     end
     
+    def self.rm_user(user=nil)
+      if user and user.match(/^[^@]+@[^@]+$/)
+        if !self.user_defined?(user)
+          return false
+        elsif self.superuser?(user)
+          return false
+        else
+          # Remove any MUC handles first
+          self.user_handles(user).each do |h|
+            self.rm_handle(h)
+          end
+          
+          lp,dom = user.downcase.gsub(/[^\w@]/,"_").split('@')
+          u = WH::Config.users.to_hash
+          m = WH::Config.muc_handles.to_hash
+          u[dom.to_sym].delete(lp.to_sym)
+          if u[dom.to_sym].empty?
+            u.delete(dom.to_sym)
+          end
+          config = {
+            :users => u,
+            :muc_handles => m
+          }
+          if self.write_yaml_local_config("users_local_conf",config)
+            self.reload_users
+            return true
+          else
+            return false
+          end
+        end
+      end
+    end
+    
     def self.add_handle(user=nil,handle=nil)
       return false unless user and handle
+      # Don't allow super users to be toyed with
+      return false if self.superuser?(user)
       if user.match(/^[^@]+@[^@]+$/) and handle.match(/^[^\/]+\/[^\/]+$/)
         if self.user_defined?(user)
           server,nick = handle.downcase.gsub(/[^\w\/]/,"_").split('/')
@@ -161,9 +230,37 @@ module Workhorse
       end
     end
     
+    def self.rm_handle(handle=nil)
+      return false unless handle
+      if handle.match(/^[^\/]+\/[^\/]+$/)
+        # Don't toy with super users
+        return false if self.muc_superuser?(handle)
+        server,nick = handle.downcase.gsub(/[^\w\/]/,"_").split('/')
+        u = WH::Config.users.to_hash
+        m = WH::Config.muc_handles.to_hash
+        m[server.to_sym].delete(nick.to_sym)
+        if m[server.to_sym].empty?
+          m.delete(server.to_sym)
+        end
+        config = {
+          :users => u,
+          :muc_handles => m
+        }
+        if self.write_yaml_local_config("users_local_conf",config)
+          self.reload_users
+          return true
+        else
+          return false
+        end
+      else
+        return false
+      end
+    end
+    
     def self.add_access(user=nil,handler=nil,commands=[])
       if user and user.match(/^[^@]+@[^@]+$/) and handler
         if self.user_defined?(user) and self.active_handler?(handler)
+          return true if self.superuser?(user)
           lp,dom = user.downcase.gsub(/[^\w@]/,"_").split('@')
           u = WH::Config.users.to_hash
           m = WH::Config.muc_handles.to_hash
@@ -176,6 +273,11 @@ module Workhorse
             commands.each do |c|
               comms[c.downcase.to_sym] = "allowed"
             end
+            if u[dom.to_sym][lp.to_sym][:handlers] and u[dom.to_sym][lp.to_sym][:handlers][handler.downcase.to_sym] and u[dom.to_sym][lp.to_sym][:handlers][handler.downcase.to_sym][:commands]
+              u[dom.to_sym][lp.to_sym][:handlers][handler.downcase.to_sym][:commands].each do |c,v|
+                comms[c] = v
+              end
+            end
             hauth = {
               :allowed => "limited",
               :commands => comms
@@ -183,11 +285,57 @@ module Workhorse
           end
           u[dom.to_sym][lp.to_sym][:handlers] = {} unless u[dom.to_sym][lp.to_sym][:handlers]
           u[dom.to_sym][lp.to_sym][:handlers][handler.downcase.to_sym] = hauth
+          u[dom.to_sym][lp.to_sym][:allowed] = "limited"
           config = {
             :users => u,
             :muc_handles => m
           }
-          puts config.inspect
+          if self.write_yaml_local_config("users_local_conf",config)
+            return true
+          else
+            return false
+          end
+        else
+          return false
+        end
+      else
+        return false
+      end
+    end
+    
+    def self.rm_access(user=nil,handler=nil,commands=[])
+      if user
+        # Don't allow super users to be toyed with
+        return false if self.superuser?(user)
+        # Remove the user if no handler is specified
+        self.rm_user(user) unless handler
+        return true unless self.user_defined?(user)
+        return true unless self.user_allowed_handler?(user,handler.downcase)
+        
+        lp,dom = user.downcase.gsub(/[^\w@]/,"_").split('@')
+        u = WH::Config.users.to_hash
+        m = WH::Config.muc_handles.to_hash
+        
+        if commands.empty?
+          # Remove complete access to the handler
+          u[dom.to_sym][lp.to_sym][:handlers].delete(handler.downcase.to_sym)
+          if u[dom.to_sym][lp.to_sym][:handlers].empty?
+            # If we don't have any access left, user can be removed
+            self.rm_user(user)
+          end
+        else
+          # Just remove the commands that were provided
+          commands.each do |c|
+            next unless self.user_allowed_handler?(user,handler.downcase,c.downcase)
+            u[dom.to_sym][lp.to_sym][:handlers][handler.downcase.to_sym][:commands].delete(c.to_sym)
+          end
+        end
+        config = {
+          :users => u,
+          :muc_handles => m
+        }
+        if self.write_yaml_local_config("users_local_conf",config)
+          self.reload_users
           return true
         else
           return false

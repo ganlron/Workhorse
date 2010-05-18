@@ -116,10 +116,24 @@ module Workhorse
       
       def add_user
         if @args[2] and @args[2].match(/^[^@]+@[^@]+$/)
-          if WH::Config.add_user(@args[2].downcase)
-            self.succeeded("User #{@args[2].downcase} was successfully added to Workhorse")
+          user = @args[2].downcase
+          if WH::Config.add_user(user)
+            self.succeeded("User #{user} was successfully added to Workhorse")
           else
-            self.failed("Failed to add user #{@args[2].downcase}")
+            self.failed("Failed to add user #{user}")
+          end
+        else
+          self.failed("Please supply a username in the format of username@domain")
+        end
+      end
+      
+      def rm_user
+        if @args[2] and @args[2].match(/^[^@]+@[^@]+$/)
+          user = @args[2].downcase
+          if WH::Config.rm_user(user)
+            self.succeeded("User #{user} was successfully removed from Workhorse")
+          else
+            self.failed("Failed to remove user #{user}")
           end
         else
           self.failed("Please supply a username in the format of username@domain")
@@ -128,29 +142,60 @@ module Workhorse
       
       def add_handle
         if @args[2] and @args[2].match(/^[^@]+@[^@]+$/) and @args[3] and @args[3].match(/^[^\/]+\/[^\/]+$/)
-          if WH::Config.add_handle(@args[2].downcase,@args[3].downcase)
-            self.succeeded("Handle #{@args[2].downcase} was successfully added to Workhorse")
+          handle = @args[2].downcase
+          link = @args[3].downcase
+          if WH::Config.add_handle(handle,link)
+            self.succeeded("Handle #{handle} was successfully added to Workhorse")
           else
-            self.failed("Failed to add handle #{@args[2].downcase}")
+            self.failed("Failed to add handle #{handle}")
           end
         else
           self.failed("Please supply both the username (in the format of username@domain) to link to, as well as the handle (in the format of server/nick) to link")
         end
       end
       
+      def rm_handle
+        if @args[2] and @args[2].match(/^[^\/]+\/[^\/]+$/)
+          handle = @args[2].downcase
+          if WH::Config.rm_handle(handle)
+            self.succeeded("Handle #{handle} was successfully removed from Workhorse")
+          else
+            self.failed("Failed to remove handle #{handle}")
+          end
+        else
+          self.failed("Please supply the handle (in the format of server/nick) to remove")
+        end
+      end
+      
       def add_access
-        # arg 2 should be username, arg 3 should be the handler, and any remaining args will be the commands to add access to
-        user = @args[2]
-        handler = @args[3]
-        commands = @args.slice(4..-1)
-        if user and user.match(/^[^@]+@[^@]+$/) and handler
+        if @args[2] and @args[2].match(/^[^@]+@[^@]+$/) and @args[3]
+          user = @args[2].downcase
+          handler = @args[3].downcase
+          commands = @args.slice(4..-1)
           if WH::Config.add_access(user,handler,commands)
-            self.succeeded("Still a work in progress")
+            self.succeeded("Access to #{handler} for #{user} was successfully added to Workhorse")
           else
             self.failed("Failed to add access to #{handler} for #{user}")
           end
         else
           self.succeeded("Please supply both the username and the handler/action to grant access to")
+        end
+      end
+      
+      def rm_access
+        if @args[2] and @args[2].match(/^[^@]+@[^@]+$/)
+          user = @args[2].downcase
+          handler = @args[3]
+          commands = @args.slice(4..-1)
+          # if no handler supplied, redirect to rm_user
+          self.rm_user unless handler
+          if WH::Config.rm_access(user,handler,commands)
+            self.succeeded("Access to #{handler} for #{user} was successfully removed from Workhorse")
+          else
+            self.failed("Failed to remove access to #{handler} for #{user}")
+          end
+        else
+          self.succeeded("Please the username to remove access from, and optionally the handler and/or command(s)")
         end
       end
 
@@ -218,6 +263,21 @@ module Workhorse
           else
             self.reply("What would you like to add?")
           end
+        when "remove", "rm"
+          if @args[1]
+            case @args[1]
+            when /^user$/i
+              self.blocking("rm_user")
+            when /^handle$/i
+              self.blocking("rm_handle")
+            when /^access$/i
+              self.blocking("rm_access")
+            else
+              self.reply("Not sure what you're tryig to remove (please see help)")
+            end
+          else
+            self.reply("What would you like to remove?")
+          end
         else
           help = "Usage: workhorse <command> <optional>\n\n" +
           "Information Commands:\n" +
@@ -247,7 +307,7 @@ module Workhorse
           "\t\t\thandle - Removes a MUC handle with link to valid user\n" +
           "\t\t\t\t(required <handle> - Handle/Alias to remove)\n" +
           "\t\t\taccess - Denies user access to an handler\n" +
-          "\t\t\t\t(required <user> - username@domain to be denied access, <handler> - Name of handler to deny access to)\n"
+          "\t\t\t\t(required <user> - username@domain to be denied access, <handler> - (Optional) - Name of handler to deny access to, <commands> - (Optional) - list of commands to remove access from)\n"
           
           self.reply(help)
         end
