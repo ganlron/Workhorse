@@ -8,8 +8,8 @@ module Workhorse
       VERSION = "0.01"
       
       def test
-        dom = @args[1]
-        verbose = @args[2]
+        dom = @args[0]
+        verbose = @args[1]
         # Pull the MX records for the domain
         dns = Resolv::DNS.open
         mail_servers = dns.getresources(dom, Resolv::DNS::Resource::IN::MX)
@@ -42,13 +42,12 @@ module Workhorse
       
       def handle
         if @muc.nil?
-          dom = @args[1]
+          dom = @args[0]
           if dom.nil?
             # Does command appear to be a domain instead?
             if @command.match(/\./)
               dom = @command
-              @args[1] = @command
-              @args[0] = "test"
+              @args[0] = @command
               @command = "test"
             end
           end

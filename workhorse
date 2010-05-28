@@ -6,7 +6,7 @@ require 'rubygems'
 require 'workhorse'
 require 'require_all'
 begin
-  require_rel 'lib/workhorse/actions' 
+  require_rel 'lib/workhorse/handlers' 
 rescue Exception 
   # Report on error encountered and what handlers actually loaded, then try and continue
   $stderr.puts $!

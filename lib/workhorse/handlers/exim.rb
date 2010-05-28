@@ -115,15 +115,15 @@ module Workhorse
         if summary.empty?
           false
         else
-          unless @args[1].nil?
-            if @args[2].nil?
-              if summary[@args[1].downcase]
+          unless @args[0].nil?
+            if @args[1].nil?
+              if summary[@args[0].downcase]
                 true
               else
                 false
               end
             else
-              res = summary.map { |k,v| v if k =~ /#{@args[1]}/i }.compact
+              res = summary.map { |k,v| v if k =~ /#{@args[0]}/i }.compact
               if res.empty?
                 return false
               else
@@ -135,20 +135,20 @@ module Workhorse
       end
       
       def queueing_response
-        if @args[1]
+        if @args[0]
           if self.queueing
-            if @args[2].nil?
-              self.succeeded("Mail is queueing for #{@args[1]}")
+            if @args[1].nil?
+              self.succeeded("Mail is queueing for #{@args[0]}")
             else
               response = ""
-              summary.map { |k,v| response << "Mail is queueing for #{v[:domain]}\n" if k =~ /#{@args[1]}/i }.compact
+              summary.map { |k,v| response << "Mail is queueing for #{v[:domain]}\n" if k =~ /#{@args[0]}/i }.compact
               self.succeeded(response)
             end
           else
-            if @args[2].nil?
-              self.succeeded("Mail is NOT queueing for #{@args[1]}")
+            if @args[1].nil?
+              self.succeeded("Mail is NOT queueing for #{@args[0]}")
             else
-              self.failed("Can not find any mail queueing for pattern #{@args[1]}")
+              self.failed("Can not find any mail queueing for pattern #{@args[0]}")
             end
           end
         else
@@ -157,8 +157,8 @@ module Workhorse
       end
       
       def retry
-        if @args[1]
-          self.system("#{@@exiqgrep} -r #{@args[1].downcase} -i | #{@@xargs} #{@@exim} -M ")
+        if @args[0]
+          self.system("#{@@exiqgrep} -r #{@args[0].downcase} -i | #{@@xargs} #{@@exim} -M ")
         else
           self.system("#{@@exim} -q")
         end
@@ -166,12 +166,12 @@ module Workhorse
       
       def retry_response
         self.retry
-        if @args[1]
-          @args[2] = 'grep'
+        if @args[0]
+          @args[1] = 'grep'
           if self.queueing
-            self.failed("Retry was attempted, but mail is still queueing for #{@args[1].downcase}")
+            self.failed("Retry was attempted, but mail is still queueing for #{@args[0].downcase}")
           else
-            self.succeeded("Retry was successful, mail is no longer queueing for #{@args[1].downcase}")
+            self.succeeded("Retry was successful, mail is no longer queueing for #{@args[0].downcase}")
           end
         else
           if self.size > 0
@@ -183,9 +183,9 @@ module Workhorse
       end
       
       def rm
-        if @args[1]
-          res = self.system("#{@@exim} -Mrm #{@args[1]}")
-          if res.match(/^Message #{@args[1]} has been removed$/i)
+        if @args[0]
+          res = self.system("#{@@exim} -Mrm #{@args[0]}")
+          if res.match(/^Message #{@args[0]} has been removed$/i)
             true
           else
             false
@@ -222,11 +222,11 @@ module Workhorse
           self.blocking("retry_response")
           self.reply("Scheduled retry of queued messages...")
         when "rm"
-          if @args[1]
+          if @args[0]
             if self.rm
-              self.reply("Message #{@args[1]} has been removed")
+              self.reply("Message #{@args[0]} has been removed")
             else
-              self.reply("Failed to remove message #{@args[1]}")
+              self.reply("Failed to remove message #{@args[0]}")
             end
           else
             self.reply("Please supply the message id of the message you wish to remove")

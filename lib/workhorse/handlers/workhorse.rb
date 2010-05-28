@@ -20,11 +20,11 @@ module Workhorse
       end
       
       def version_response
-        if @args[1]
-          if versions["handlers"][@args[1]]
-            self.succeeded("Version #{versions["handlers"][@args[1]]} of handler #{@args[1]} installed")
+        if @args[0]
+          if versions["handlers"][@args[0]]
+            self.succeeded("Version #{versions["handlers"][@args[0]]} of handler #{@args[0]} installed")
           else
-            self.failed("Cannot find an installed version of handler #{@args[1]}")
+            self.failed("Cannot find an installed version of handler #{@args[0]}")
           end
         else
           res = "Application:\n"
@@ -54,16 +54,16 @@ module Workhorse
       def handler_response
         res_handlers = {}
         handlers.each do |h,i|
-          if @args[1]
-            next if @args[1].match(/^active$/i) and !i[:active]
-            next if @args[1].match(/^inactive$/i) and i[:active]
+          if @args[0]
+            next if @args[0].match(/^active$/i) and !i[:active]
+            next if @args[0].match(/^inactive$/i) and i[:active]
           end
           res_handlers[h] = i
         end
         
         if res_handlers.empty?
-          if @args[1]
-            case @args[1]
+          if @args[0]
+            case @args[0]
             when /^active$/i
               res = "There are currently no active handlers"
             when /^inactive$/i
@@ -115,8 +115,8 @@ module Workhorse
       end
       
       def add_user
-        if @args[2] and @args[2].match(/^[^@]+@[^@]+$/)
-          user = @args[2].downcase
+        if @args[1] and @args[1].match(/^[^@]+@[^@]+$/)
+          user = @args[1].downcase
           if WH::Config.add_user(user)
             self.succeeded("User #{user} was successfully added to Workhorse")
           else
@@ -128,8 +128,8 @@ module Workhorse
       end
       
       def rm_user
-        if @args[2] and @args[2].match(/^[^@]+@[^@]+$/)
-          user = @args[2].downcase
+        if @args[1] and @args[1].match(/^[^@]+@[^@]+$/)
+          user = @args[1].downcase
           if WH::Config.rm_user(user)
             self.succeeded("User #{user} was successfully removed from Workhorse")
           else
@@ -141,9 +141,9 @@ module Workhorse
       end
       
       def add_handle
-        if @args[2] and @args[2].match(/^[^@]+@[^@]+$/) and @args[3] and @args[3].match(/^[^\/]+\/[^\/]+$/)
-          handle = @args[2].downcase
-          link = @args[3].downcase
+        if @args[1] and @args[1].match(/^[^@]+@[^@]+$/) and @args[2] and @args[2].match(/^[^\/]+\/[^\/]+$/)
+          handle = @args[1].downcase
+          link = @args[2].downcase
           if WH::Config.add_handle(handle,link)
             self.succeeded("Handle #{handle} was successfully added to Workhorse")
           else
@@ -155,8 +155,8 @@ module Workhorse
       end
       
       def rm_handle
-        if @args[2] and @args[2].match(/^[^\/]+\/[^\/]+$/)
-          handle = @args[2].downcase
+        if @args[1] and @args[1].match(/^[^\/]+\/[^\/]+$/)
+          handle = @args[1].downcase
           if WH::Config.rm_handle(handle)
             self.succeeded("Handle #{handle} was successfully removed from Workhorse")
           else
@@ -168,9 +168,9 @@ module Workhorse
       end
       
       def add_access
-        if @args[2] and @args[2].match(/^[^@]+@[^@]+$/) and @args[3]
-          user = @args[2].downcase
-          handler = @args[3].downcase
+        if @args[1] and @args[1].match(/^[^@]+@[^@]+$/) and @args[2]
+          user = @args[1].downcase
+          handler = @args[2].downcase
           commands = @args.slice(4..-1)
           if WH::Config.add_access(user,handler,commands)
             self.succeeded("Access to #{handler} for #{user} was successfully added to Workhorse")
@@ -183,9 +183,9 @@ module Workhorse
       end
       
       def rm_access
-        if @args[2] and @args[2].match(/^[^@]+@[^@]+$/)
-          user = @args[2].downcase
-          handler = @args[3]
+        if @args[1] and @args[1].match(/^[^@]+@[^@]+$/)
+          user = @args[1].downcase
+          handler = @args[2]
           commands = @args.slice(4..-1)
           # if no handler supplied, redirect to rm_user
           self.rm_user unless handler
@@ -249,8 +249,8 @@ module Workhorse
             self.reply(res)
           end
         when "add"
-          if @args[1]
-            case @args[1]
+          if @args[0]
+            case @args[0]
             when /^user$/i
               self.blocking("add_user")
             when /^handle$/i
@@ -264,8 +264,8 @@ module Workhorse
             self.reply("What would you like to add?")
           end
         when "remove", "rm"
-          if @args[1]
-            case @args[1]
+          if @args[0]
+            case @args[0]
             when /^user$/i
               self.blocking("rm_user")
             when /^handle$/i

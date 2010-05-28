@@ -1,6 +1,7 @@
 require 'rubygems'
 require 'eventmachine'
 require 'active_support'
+require 'json'
 
 module Workhorse
   module Actions
@@ -14,21 +15,31 @@ module Workhorse
     end
     
     def self.identify_request(m)
-      words = m.body.gsub(/<\/?[^>]*>/, "").gsub(/\302\240/," ").squeeze(" ").split(/\s+/)
-      h = words.shift.downcase
-      c = words.empty? ? "none" : words[0].downcase
-      return h,c,words
+      if (m.subject and m.subject == 'json') or (m.body.match(/^\{.+\}$/))
+        # Message appears to be a json message, act appropriately
+        data = JSON(m.body)
+        h = data["handler"] ? data["handler"] : nil
+        c = data["command"] ? data["command"] : "none"
+        words = data["args"]
+        type = "json"
+      else
+        words = m.body.gsub(/\302\240/," ").squeeze(" ").split(/\s+/)
+        h = words.shift.downcase
+        c = words.empty? ? "none" : words.shift.downcase
+        type = "text"
+      end
+      return h,c,type,words
     end
 
     def self.run
       WH.im.add_message_callback do |m|
         if WH::Config.user_allowed?(m.from)
           if m.type != :error and m.body
-            h,c,w = self.identify_request(m)
+            h,c,t,w = self.identify_request(m)
             if !@@handlers[h].nil?
               next unless WH::Config.active_handler?(h)
               next unless WH::Config.user_allowed_handler?(m.from,h,c)
-              handler = @@handlers[h].new(m,c,w)
+              handler = @@handlers[h].new(m,c,t,w)
               if handler.respond_to?("handle".to_sym)
                 handler.handle
               end
@@ -51,11 +62,11 @@ module Workhorse
       unless m.body.nil?
         if m.from != "#{cn}/#{muc.nick}"
           if WH::Config.muc_user_allowed?(m.from)
-            h,c,w = self.identify_request(m)
+            h,c,t,w = self.identify_request(m)
             if !@@handlers[h].nil?
               next unless WH::Config.active_handler?(h)
               next unless WH::Config.muc_user_allowed_handler?(m.from,h,c)
-              handler = @@handlers[h].new(m,c,w,muc)
+              handler = @@handlers[h].new(m,c,t,w,muc)
               if handler.respond_to?("handle".to_sym)
                 handler.handle
               end
@@ -82,18 +93,28 @@ module Workhorse
       @message = nil
       @command = nil
       @muc = nil
+      @type="text"
       @args = []
 
-      def initialize(message=nil,command=nil,args=[],muc=nil)
+      def initialize(message=nil,command=nil,type="text",args=[],muc=nil)
         @message = message
         @command = command
         @args = args
         @muc = muc
+        @type = type
       end
       
       def reply(response="Dunno how to")
+        if (@type == 'json')
+          # Pack up a json response
+          newr = {
+            "response" => response
+          }
+          response = newr.to_json
+        end
         r = Message.new(@message.from, response)
         r.type = @message.type
+        r.subject = @type
         if @muc.nil?
           WH.im.send(r)
         else
