@@ -6,7 +6,6 @@ require 'syslog'
 require 'xmpp4r'
 require 'xmpp4r/muc/helper/mucclient'
 include Jabber
-#Jabber::debug=true
 
 require 'workhorse/config'
 require 'workhorse/actions'

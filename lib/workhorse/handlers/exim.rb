@@ -101,11 +101,15 @@ module Workhorse
       end
       
       def summary_response
-        response = "There is no queued mail"
-        unless summary.empty?
-          response = "The following domains are queueing:\n\n"
-          summary.each do |d,i|
-            response << "#{d} has #{i[:count]} (#{i[:volume]}) messages queued with the oldest being #{i[:oldest]}\n"
+        if @type == 'json'
+          response = summary
+        else
+          response = "There is no queued mail"
+          unless summary.empty?
+            response = "The following domains are queueing:\n\n"
+            summary.each do |d,i|
+              response << "#{d} has #{i[:count]} (#{i[:volume]}) messages queued with the oldest being #{i[:oldest]}\n"
+            end
           end
         end
         self.succeeded(response)
@@ -208,19 +212,19 @@ module Workhorse
         case @command
         when "mailq"
           self.nonblocking("mailq_response")
-          self.reply("Processing Mail Queue, please wait...")
+          self.reply("Processing Mail Queue, please wait...") unless @type == 'json'
         when "size"
           self.nonblocking("size_response")
-          self.reply("Processing Mail Queue, please wait...")
+          self.reply("Processing Mail Queue, please wait...") unless @type == 'json'
         when "summary","qsumm"
           self.nonblocking("summary_response")
-          self.reply("Processing Mail Queue, please wait...")
+          self.reply("Processing Mail Queue, please wait...") unless @type == 'json'
         when "queueing", "queuing"
           self.nonblocking("queueing_response")
-          self.reply("Processing Mail Queue, please wait...")
+          self.reply("Processing Mail Queue, please wait...") unless @type == 'json'
         when "retry"
           self.blocking("retry_response")
-          self.reply("Scheduled retry of queued messages...")
+          self.reply("Scheduled retry of queued messages...") unless @type == 'json'
         when "rm"
           if @args[0]
             if self.rm
