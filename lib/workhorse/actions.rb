@@ -20,7 +20,7 @@ module Workhorse
         data = JSON(m.body)
         h = data["handler"] ? data["handler"] : nil
         c = data["command"] ? data["command"] : "none"
-        words = data["args"]
+        words = data["args"] ? data["args"].gsub(/\302\240/," ").squeeze(" ").split(/\s+/) : []
         type = "json"
       else
         words = m.body.gsub(/\302\240/," ").squeeze(" ").split(/\s+/)

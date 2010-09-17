@@ -22,8 +22,10 @@ module Workhorse
       def version_response
         if @args[0]
           if versions["handlers"][@args[0]]
+            self.succeeded(versions["handlers"][@args[0]]) if @type == 'json'
             self.succeeded("Version #{versions["handlers"][@args[0]]} of handler #{@args[0]} installed")
           else
+            self.failed([]) if @type == 'json'
             self.failed("Cannot find an installed version of handler #{@args[0]}")
           end
         else
@@ -35,6 +37,7 @@ module Workhorse
           versions["handlers"].sort.each do |h,v|
             res << "\t#{h} = #{v}\n"
           end
+          self.succeeded(versions) if @type == 'json'
           self.succeeded(res)
         end
       end
@@ -59,8 +62,7 @@ module Workhorse
             next if @args[0].match(/^inactive$/i) and i[:active]
           end
           res_handlers[h] = i
-        end
-        
+        end        
         if res_handlers.empty?
           if @args[0]
             case @args[0]
@@ -85,6 +87,7 @@ module Workhorse
             res << "\n"
           end
         end
+        self.reply(res_handlers) if @type == 'json'
         self.reply(res)
       end
       
@@ -201,41 +204,45 @@ module Workhorse
 
       def handle
         case @command
-        when "version"
+        when "version", "versions"
           self.nonblocking("version_response")
         when "handlers"
           self.nonblocking("handler_response")
         when "users"
-          res = "User List:\n\n"
-          users.sort.each do |u,a|
-            res << "#{u}\n"
-            if a[:allowed] and a[:allowed] != "none"
-              res << "\tAccess: #{a[:allowed]}\n"
-              if a[:allowed] == "limited"
-                unless a[:handlers].empty?
-                  res << "\tActions:\n"
-                  a[:handlers].each do |handler,perms|
-                    res << "\t\t#{handler}\n"
-                    if perms[:allowed] and perms[:allowed] != "none"
-                      res << "\t\t\tAccess: #{perms[:allowed]}\n"
-                      if perms[:allowed] == "limited"
-                        unless perms[:commands].empty?
-                          res <<"\t\t\tCommands:\n"
-                          perms[:commands].each do |command,val|
-                            res << "\t\t\t\t#{command}: #{val}\n"
+          if @type == 'json'
+            res = users
+          else
+            res = "User List:\n\n"
+            users.sort.each do |u,a|
+              res << "#{u}\n"
+              if a[:allowed] and a[:allowed] != "none"
+                res << "\tAccess: #{a[:allowed]}\n"
+                if a[:allowed] == "limited"
+                  unless a[:handlers].empty?
+                    res << "\tActions:\n"
+                    a[:handlers].each do |handler,perms|
+                      res << "\t\t#{handler}\n"
+                      if perms[:allowed] and perms[:allowed] != "none"
+                        res << "\t\t\tAccess: #{perms[:allowed]}\n"
+                        if perms[:allowed] == "limited"
+                          unless perms[:commands].empty?
+                            res <<"\t\t\tCommands:\n"
+                            perms[:commands].each do |command,val|
+                              res << "\t\t\t\t#{command}: #{val}\n"
+                            end
                           end
                         end
+                      else
+                        res << "\t\t\tAccess: none\n"
                       end
-                    else
-                      res << "\t\t\tAccess: none\n"
                     end
                   end
                 end
+              else
+                res << "\tAccess: none\n"
               end
-            else
-              res << "\tAccess: none\n"
+              res << "\n"
             end
-            res << "\n"
           end
           self.reply(res)
         when "handles"
@@ -258,10 +265,10 @@ module Workhorse
             when /^access$/i
               self.blocking("add_access")
             else
-              self.reply("Not sure what you're trying to add (please see help)")
+              self.reply("Not sure what you're trying to add (please see help)") unless @type == 'json'
             end
           else
-            self.reply("What would you like to add?")
+            self.reply("What would you like to add?") unless @type == 'json'
           end
         when "remove", "rm"
           if @args[0]
@@ -273,10 +280,10 @@ module Workhorse
             when /^access$/i
               self.blocking("rm_access")
             else
-              self.reply("Not sure what you're tryig to remove (please see help)")
+              self.reply("Not sure what you're tryig to remove (please see help)") unless @type == 'json'
             end
           else
-            self.reply("What would you like to remove?")
+            self.reply("What would you like to remove?") unless @type == 'json'
           end
         else
           help = "Usage: workhorse <command> <optional>\n\n" +
@@ -309,7 +316,7 @@ module Workhorse
           "\t\t\taccess - Denies user access to an handler\n" +
           "\t\t\t\t(required <user> - username@domain to be denied access, <handler> - (Optional) - Name of handler to deny access to, <commands> - (Optional) - list of commands to remove access from)\n"
           
-          self.reply(help)
+          self.reply(help) unless @type == 'json'
         end
       end
   

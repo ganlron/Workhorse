@@ -1,6 +1,6 @@
 require 'rubygems'
 require 'eventmachine'
-require 'active_support'
+require 'active_support/all'
 require 'configatron'
 
 module Workhorse

@@ -54,14 +54,18 @@ module Workhorse
       end
       
       def mailq_response
-        response = "There is no queued mail"
-        if self.size > 100
-          response = "There are more than 100 messages queued"
+        if @type == 'json'
+          response = mailq
         else
-          unless mailq.empty?
-            response = "The following messages are queued:\n\n"
-            mailq.each do |id,m|
-              response << "Message #{id} from #{m[:sender]} to #{m[:recipients].join(", ")}\n"
+          response = "There is no queued mail"
+          if self.size > 100
+            response = "There are more than 100 messages queued"
+          else
+            unless mailq.empty?
+              response = "The following messages are queued:\n\n"
+              mailq.each do |id,m|
+                response << "Message #{id} from #{m[:sender]} to #{m[:recipients].join(", ")}\n"
+              end
             end
           end
         end
@@ -173,15 +177,15 @@ module Workhorse
         if @args[0]
           @args[1] = 'grep'
           if self.queueing
-            self.failed("Retry was attempted, but mail is still queueing for #{@args[0].downcase}")
+            self.failed("Retry failed: Mail is still queueing for #{@args[0].downcase}")
           else
-            self.succeeded("Retry was successful, mail is no longer queueing for #{@args[0].downcase}")
+            self.succeeded("Retry successful: Mail is no longer queueing for #{@args[0].downcase}")
           end
         else
           if self.size > 0
-            self.failed("Retry was attempted, but there are still #{self.size} messages queued")
+            self.failed("Retry failed: There are still #{self.size} messages queued")
           else
-            self.succeeded("Retry was successful, no mail is currently queued")
+            self.succeeded("Retry successful: No mail is currently queued")
           end
         end
       end
@@ -251,7 +255,7 @@ module Workhorse
           "\tretry <?domain> - If a domain is specified will retry queued mail for that domain, otherwise will retry all\n" +
           "\trm <message-id> - Will remove specified message id from the queue\n" +
           "\trmbounces - Will remove all bounces from the queue"
-          self.reply(help)
+          self.reply(help) unless @type == 'json'
         end
       end
 

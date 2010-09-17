@@ -55,13 +55,13 @@ module Workhorse
           case @command
           when "test"
             if dom.nil?
-              self.reply("Please specify the domain to test")
+              self.reply("Please specify the domain to test") unless @type == 'json'
             else
               self.nonblocking("test")
-              self.reply("Scheduled to test #{dom}")
+              self.reply("Scheduled to test #{dom}") unless @type == 'json'
             end
           else
-            self.reply("TestMX instructions:")
+            self.reply("TestMX instructions:") unless @type == 'json'
           end
         end    
       end
