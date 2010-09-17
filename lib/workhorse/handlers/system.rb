@@ -5,27 +5,27 @@ module Workhorse
       VERSION = "0.01"
       
       def uptime
-        res = self.system("uptime")
+        res = self.system("uptime").chomp
         self.succeeded(res)
       end
       
       def hardware
-        res = self.system("uname -m")
+        res = self.system("uname -m").chomp
         self.succeeded(res)
       end
       
       def kernel
-        res = self.system("uname -i")
+        res = self.system("uname -i").chomp
         self.succeeded(res)
       end
       
       def hostname
-        res = self.system("uname -n")
+        res = self.system("uname -n").chomp
         self.succeeded(res)
       end
       
       def os
-        res = self.system("uname -sr")
+        res = self.system("uname -sr").chomp
         self.succeeded(res)
       end
       

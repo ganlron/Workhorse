@@ -34,7 +34,11 @@ module Workhorse
               res << "#{mx} " << "= " << "#{testr}\n"
             end
           end
-          self.succeeded(res)
+          if @type == 'json'
+            self.succeeded(results)
+          else
+            self.succeeded(res)
+          end
         else
           self.failed("Domain #{dom} does not exist or did not return MX records")
         end
