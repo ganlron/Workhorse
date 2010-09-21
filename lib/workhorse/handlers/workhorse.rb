@@ -5,6 +5,7 @@ module Workhorse
       include WH::Actions::Handler
       VERSION = "0.01"
       DESCRIPTION = "Administrative controls for Workhorse"
+      REQUIREMENTS = ['yaml']
       
       def versions
         versions = {}
@@ -316,7 +317,7 @@ module Workhorse
           "\t\t\taccess - Denies user access to an handler\n" +
           "\t\t\t\t(required <user> - username@domain to be denied access, <handler> - (Optional) - Name of handler to deny access to, <commands> - (Optional) - list of commands to remove access from)\n"
           
-          self.reply(help) unless @type == 'json'
+          self.reply(help) unless @type == 'json' or @muc
         end
       end
   

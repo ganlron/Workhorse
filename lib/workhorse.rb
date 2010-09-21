@@ -13,6 +13,8 @@ require 'workhorse/actions'
 module Workhorse
   mattr_accessor :im, :interrupted
   VERSION = "0.01"
+  DESCRIPTION = "Primary library for Workhorse"
+  REQUIREMENTS = ['rubygems', 'eventmachine', 'active_support', 'syslog', 'xmpp4r', 'xmpp4r/muc/helper/mucclient', 'workhorse/config', 'workhorse/actions']
   @@interrupted = false
   
   def self.run

@@ -3,6 +3,8 @@ module Workhorse
     class Centos
       include WH::Actions::Handler
       VERSION = "0.01"
+      DESCRIPTION = "Centos Controls"
+      REQUIREMENTS = []
       
       def update 
         res = self.system("sudo yum -y update")

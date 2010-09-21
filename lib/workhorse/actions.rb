@@ -8,6 +8,8 @@ module Workhorse
     mattr_accessor :handlers
     include EM::Deferrable
     VERSION = "0.01"
+    DESCRIPTION = "Action Handler library for Workhorse"
+    REQUIREMENTS = ['rubygems', 'eventmachine', 'active_support', 'json']
     @@handlers = {}
     
     def self.add_handle(name, c)

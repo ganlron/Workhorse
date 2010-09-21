@@ -3,6 +3,8 @@ module Workhorse
     class Worker
       include WH::Actions::Handler
       VERSION = "0.01"
+      DESCRIPTION = "Test System"
+      REQUIREMENTS = []
       
       def heavy_lifting
         30.times do |i|

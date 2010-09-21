@@ -7,6 +7,8 @@ module Workhorse
   module Config
     mattr_accessor :daemon, :base, :im, :handlers, :users, :muc_handles
     VERSION = "0.01"
+    DESCRIPTION = "Action Handler library for Workhorse"
+    REQUIREMENTS = ['rubygems', 'eventmachine', 'active_support', 'configatron']
 
     def self.load_local_config(name)
       path = @wh_config.base.retrieve(name.to_sym,nil)
