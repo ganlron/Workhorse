@@ -7,7 +7,6 @@ module Workhorse
       include WH::Actions::Handler
       VERSION = "0.01"
       DESCRIPTION = "Mail Exchange Testing"
-      REQUIREMENTS = ['resolv', 'net/smtp']
       
       def test
         dom = @args[0]

@@ -4,7 +4,6 @@ module Workhorse
       include WH::Actions::Handler
       VERSION = "0.01"
       DESCRIPTION = "System Information Query"
-      REQUIREMENTS = []
       
       def uptime
         res = self.system("uptime").chomp

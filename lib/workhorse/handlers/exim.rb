@@ -5,7 +5,6 @@ module Workhorse
       include WH::Actions::Handler
       VERSION = "0.01"
       DESCRIPTION = "Query and control Exim"
-      REQUIREMENTS = []
       
       @@exim = File.exists?("/usr/local/sbin/exim") ? "/usr/local/sbin/exim" : File.exists?("/usr/sbin/exim") ? "/usr/sbin/exim" : nil
       if WH::Config.base.use_sudo and !@@exim.nil?

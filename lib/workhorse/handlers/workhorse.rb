@@ -5,7 +5,6 @@ module Workhorse
       include WH::Actions::Handler
       VERSION = "0.01"
       DESCRIPTION = "Administrative controls for Workhorse"
-      REQUIREMENTS = ['yaml']
       
       def versions
         versions = {}
